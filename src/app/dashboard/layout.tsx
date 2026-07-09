@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { ensureWeeklyReset } from "@/lib/weekly-reset";
 import { Sidebar } from "@/components/dashboard/sidebar";
 
 export default async function DashboardLayout({
@@ -11,6 +12,8 @@ export default async function DashboardLayout({
   if (!session) {
     redirect("/login");
   }
+
+  await ensureWeeklyReset();
 
   return (
     <div className="flex min-h-screen bg-background">

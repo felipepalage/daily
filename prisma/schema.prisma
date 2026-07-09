@@ -12,6 +12,11 @@ datasource db {
   provider = "sqlite"
 }
 
+model AppSetting {
+  key   String @id
+  value String
+}
+
 model ScrumMaster {
   id           String      @id @default(cuid())
   name         String

@@ -30,13 +30,28 @@ desenvolvedores, isolado dos demais.
 
 ## Estrutura
 
-- `prisma/schema.prisma` — modelos `ScrumMaster`, `Developer` e `DailyEntry`.
+- `prisma/schema.prisma` — modelos `ScrumMaster`, `Developer`, `DailyEntry` e
+  `AppSetting` (guarda só a marca de "qual foi a última semana resetada").
 - `src/proxy.ts` — protege as rotas do dashboard, redirecionando para `/login`
   quando não há sessão válida (equivalente ao middleware, renomeado no Next 16).
 - `src/lib/auth.ts` — criação/verificação de sessão e hash de senha.
 - `src/lib/actions/` — Server Actions de autenticação, desenvolvedores e check-ins.
+- `src/lib/weekly-reset.ts` — apaga os check-ins da semana anterior automaticamente.
 - `src/app/dashboard` — visão geral do time, página de cada desenvolvedor
   (check-in diário + histórico) e o resumo semanal com exportação em PDF.
+
+## Reset semanal automático
+
+O time e os logins nunca são apagados — só o histórico de check-ins
+(`DailyEntry`). Toda vez que alguém abre o dashboard, o app compara a semana
+atual com a última semana registrada em `AppSetting`; se mudou (nova
+segunda-feira), apaga todos os check-ins antigos antes de mostrar a tela.
+
+Não depende de nenhum cron externo nem de o DevOps agendar nada — o reset
+acontece sozinho no primeiro acesso após virar a semana. A única coisa que
+precisa sobreviver é o arquivo do SQLite entre um acesso e outro (por isso o
+aviso de disco persistente na seção de deploy acima); reinícios do servidor
+no meio da semana não apagam nada, só a virada de segunda-feira apaga.
 
 ## Deploy em produção
 
