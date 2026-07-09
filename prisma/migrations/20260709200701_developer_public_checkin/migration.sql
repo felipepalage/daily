@@ -17,7 +17,7 @@ CREATE TABLE "new_Developer" (
     "teamId" TEXT NOT NULL,
     CONSTRAINT "Developer_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-INSERT INTO "new_Developer" ("createdAt", "id", "name", "role", "teamId") SELECT "createdAt", "id", "name", "role", "teamId" FROM "Developer";
+INSERT INTO "new_Developer" ("createdAt", "id", "name", "role", "teamId", "publicToken") SELECT "createdAt", "id", "name", "role", "teamId", lower(hex(randomblob(16))) FROM "Developer";
 DROP TABLE "Developer";
 ALTER TABLE "new_Developer" RENAME TO "Developer";
 CREATE UNIQUE INDEX "Developer_publicToken_key" ON "Developer"("publicToken");
