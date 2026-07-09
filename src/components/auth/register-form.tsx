@@ -16,7 +16,7 @@ export function RegisterForm() {
       </div>
       <div>
         <Label htmlFor="email">E-mail</Label>
-        <Input id="email" name="email" type="email" placeholder="voce@empresa.com" required />
+        <Input id="email" name="email" type="email" placeholder="Email" required />
       </div>
       <div>
         <Label htmlFor="password">Senha</Label>
