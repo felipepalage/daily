@@ -2,7 +2,6 @@ import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   addDays,
-  dateToInputValue,
   formatShortDate,
   formatWeekRangeLabel,
   formatWeekdayLabel,
@@ -15,7 +14,6 @@ import { WeekNav } from "@/components/weekly/week-nav";
 import { DeveloperWeekSummary, type WeekDayEntry } from "@/components/weekly/developer-week-summary";
 import { ExportPdfButton } from "@/components/weekly/export-pdf-button";
 import { ExportCsvButton } from "@/components/weekly/export-csv-button";
-import { SendToSlackButton } from "@/components/weekly/send-to-slack-button";
 
 export default async function WeeklyPage({
   searchParams,
@@ -71,7 +69,6 @@ export default async function WeeklyPage({
         <div className="flex flex-wrap items-center gap-2">
           <ExportCsvButton weekRangeLabel={weekRangeLabel} developers={developerData} />
           <ExportPdfButton weekRangeLabel={weekRangeLabel} developers={developerData} />
-          <SendToSlackButton teamId={activeTeam.id} weekValue={dateToInputValue(monday)} />
         </div>
       </header>
 

@@ -3,7 +3,7 @@
 Aplicação para o scrum master acompanhar o dia a dia do time. Cada desenvolvedor
 responde três perguntas por dia (customizáveis) — o que está fazendo, o que está
 travado e o que pode melhorar — e o scrum master consegue ver um resumo semanal
-consolidado, exportável em PDF/CSV ou enviado direto pro Slack.
+consolidado, exportável em PDF ou CSV.
 
 ## Stack
 
@@ -40,7 +40,7 @@ na primeira visita ao dashboard — dá pra criar mais times pelo seletor na sid
 - `src/lib/email.ts` — envio de e-mail via SMTP, com fallback para log no console em dev.
 - `src/lib/blocked-streak.ts` — calcula há quantos check-ins seguidos um dev está travado.
 - `src/lib/actions/` — Server Actions de autenticação, times, desenvolvedores, check-ins,
-  configurações, recuperação de senha e envio pro Slack.
+  configurações e recuperação de senha.
 - `src/lib/weekly-reset.ts` — apaga os check-ins da semana anterior automaticamente.
 - `src/app/dashboard` — visão geral do time, página de cada desenvolvedor
   (check-in diário + histórico editável), configurações e o resumo semanal.
@@ -62,8 +62,7 @@ na primeira visita ao dashboard — dá pra criar mais times pelo seletor na sid
   o texto das três perguntas do check-in diário.
 - **Esqueci minha senha** — fluxo completo de recuperação por e-mail (link
   expira em 1h). Sem SMTP configurado, o link é só impresso no log do servidor.
-- **Exportar semanal em PDF, CSV ou Slack** — os três botões na tela de resumo
-  semanal.
+- **Exportar semanal em PDF ou CSV** — botões na tela de resumo semanal.
 - **Lembrete diário por e-mail** — endpoint `POST /api/cron/reminder` que avisa
   cada scrum master por e-mail sobre quem ainda não fez check-in hoje (ver seção
   abaixo para agendar).
@@ -111,7 +110,6 @@ Variáveis de ambiente necessárias (veja `.env.example` para a lista completa):
 - `SMTP_*` / `EMAIL_FROM` — opcionais, mas necessários para "esqueci minha
   senha" e o lembrete diário realmente enviarem e-mail (sem isso, só logam no console).
 - `CRON_SECRET` — necessário só se for usar o lembrete diário por e-mail.
-- `SLACK_WEBHOOK_URL` — opcional, necessário só para o botão "Enviar pro Slack".
 
 Comandos de build e start (Node 20+):
 
@@ -133,4 +131,4 @@ do próprio arquivo do banco, então roda bem atrás de um Nginx/reverse proxy c
 3. Cada dia, preenche o check-in do desenvolvedor com as três perguntas (e o
    humor do dia).
 4. Na aba "Resumo semanal", navega entre semanas e vê o consolidado de cada
-   desenvolvedor, com opção de exportar em PDF, CSV, ou enviar pro Slack.
+   desenvolvedor, com opção de exportar em PDF ou CSV.
