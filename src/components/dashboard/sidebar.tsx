@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { logoutAction } from "@/lib/actions/auth-actions";
@@ -16,8 +17,8 @@ export function Sidebar({ name, email }: { name: string; email: string }) {
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border bg-surface px-4 py-6">
       <div className="mb-8 flex items-center gap-2 px-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm shadow-primary/30">
-          D
+        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full shadow-sm shadow-primary/30">
+          <Image src="/avatar.png" alt="Daily" width={36} height={36} className="h-full w-full object-cover" />
         </div>
         <span className="text-lg font-semibold text-foreground">Daily</span>
       </div>
