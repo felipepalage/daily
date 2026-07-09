@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   addDays,
+  dateToInputValue,
   formatShortDate,
   formatWeekRangeLabel,
   formatWeekdayLabel,
@@ -9,9 +10,12 @@ import {
   getWeekDays,
   inputValueToDateOnlyUTC,
 } from "@/lib/date";
+import { getActiveTeam } from "@/lib/team";
 import { WeekNav } from "@/components/weekly/week-nav";
 import { DeveloperWeekSummary, type WeekDayEntry } from "@/components/weekly/developer-week-summary";
 import { ExportPdfButton } from "@/components/weekly/export-pdf-button";
+import { ExportCsvButton } from "@/components/weekly/export-csv-button";
+import { SendToSlackButton } from "@/components/weekly/send-to-slack-button";
 
 export default async function WeeklyPage({
   searchParams,
@@ -20,13 +24,14 @@ export default async function WeeklyPage({
 }) {
   const { week } = await searchParams;
   const session = await requireSession();
+  const { activeTeam } = await getActiveTeam(session.scrumMasterId);
 
   const monday = week ? getMondayOfWeek(inputValueToDateOnlyUTC(week)) : getMondayOfWeek(new Date());
   const friday = addDays(monday, 4);
   const weekDays = getWeekDays(monday);
 
   const developers = await prisma.developer.findMany({
-    where: { scrumMasterId: session.scrumMasterId },
+    where: { teamId: activeTeam.id },
     orderBy: { createdAt: "asc" },
     include: {
       entries: {
@@ -45,6 +50,7 @@ export default async function WeeklyPage({
         doing: entry?.doing ?? "",
         blocked: entry?.blocked ?? "",
         improve: entry?.improve ?? "",
+        mood: entry?.mood ?? null,
       };
     });
 
@@ -59,10 +65,14 @@ export default async function WeeklyPage({
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Resumo semanal</h1>
           <p className="mt-1 text-sm text-foreground-muted">
-            Consolidado dos check-ins diários do time.
+            Consolidado dos check-ins do time &ldquo;{activeTeam.name}&rdquo;.
           </p>
         </div>
-        <ExportPdfButton weekRangeLabel={weekRangeLabel} developers={developerData} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportCsvButton weekRangeLabel={weekRangeLabel} developers={developerData} />
+          <ExportPdfButton weekRangeLabel={weekRangeLabel} developers={developerData} />
+          <SendToSlackButton teamId={activeTeam.id} weekValue={dateToInputValue(monday)} />
+        </div>
       </header>
 
       <div className="mb-8">

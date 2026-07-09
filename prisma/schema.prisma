@@ -18,22 +18,35 @@ model AppSetting {
 }
 
 model ScrumMaster {
-  id           String      @id @default(cuid())
-  name         String
-  email        String      @unique
-  passwordHash String
-  createdAt    DateTime    @default(now())
-  developers   Developer[]
+  id                   String               @id @default(cuid())
+  name                 String
+  email                String               @unique
+  passwordHash         String
+  createdAt            DateTime             @default(now())
+  questionDoingLabel   String               @default("O que está fazendo?")
+  questionBlockedLabel String               @default("O que está travado?")
+  questionImproveLabel String               @default("O que pode melhorar?")
+  teams                Team[]
+  resetTokens          PasswordResetToken[]
+}
+
+model Team {
+  id            String      @id @default(cuid())
+  name          String
+  createdAt     DateTime    @default(now())
+  scrumMasterId String
+  scrumMaster   ScrumMaster @relation(fields: [scrumMasterId], references: [id], onDelete: Cascade)
+  developers    Developer[]
 }
 
 model Developer {
-  id            String       @id @default(cuid())
-  name          String
-  role          String?
-  createdAt     DateTime     @default(now())
-  scrumMasterId String
-  scrumMaster   ScrumMaster  @relation(fields: [scrumMasterId], references: [id], onDelete: Cascade)
-  entries       DailyEntry[]
+  id        String       @id @default(cuid())
+  name      String
+  role      String?
+  createdAt DateTime     @default(now())
+  teamId    String
+  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  entries   DailyEntry[]
 }
 
 model DailyEntry {
@@ -42,6 +55,8 @@ model DailyEntry {
   doing       String
   blocked     String
   improve     String
+  mood        String?
+  scrumNote   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   developerId String
@@ -49,4 +64,13 @@ model DailyEntry {
 
   @@unique([developerId, date])
   @@index([date])
+}
+
+model PasswordResetToken {
+  id            String      @id @default(cuid())
+  tokenHash     String      @unique
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+  scrumMasterId String
+  scrumMaster   ScrumMaster @relation(fields: [scrumMasterId], references: [id], onDelete: Cascade)
 }

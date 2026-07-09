@@ -14,6 +14,14 @@ const PAGE_HEIGHT = 287;
 const MARGIN = 15;
 const CONTENT_WIDTH = 180;
 
+const MOOD_LABEL: Record<string, string> = {
+  otimo: "Ótimo",
+  bem: "Bem",
+  neutro: "Neutro",
+  dificil: "Difícil",
+  pessimo: "Péssimo",
+};
+
 export function ExportPdfButton({
   weekRangeLabel,
   developers,
@@ -63,7 +71,8 @@ export function ExportPdfButton({
         for (const day of developer.days) {
           ensureSpace(1, 6);
           doc.setFont("helvetica", "bold");
-          doc.text(`${day.label} · ${day.shortDate}`, MARGIN, y);
+          const moodSuffix = day.mood ? `  (${MOOD_LABEL[day.mood] ?? day.mood})` : "";
+          doc.text(`${day.label} · ${day.shortDate}${moodSuffix}`, MARGIN, y);
           doc.setFont("helvetica", "normal");
           y += 5;
 

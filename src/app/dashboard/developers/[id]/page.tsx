@@ -14,16 +14,25 @@ export default async function DeveloperPage({
   const { id } = await params;
   const session = await requireSession();
 
-  const developer = await prisma.developer.findFirst({
-    where: { id, scrumMasterId: session.scrumMasterId },
-    include: {
-      entries: { orderBy: { date: "desc" } },
-    },
-  });
+  const [developer, scrumMaster] = await Promise.all([
+    prisma.developer.findFirst({
+      where: { id, team: { scrumMasterId: session.scrumMasterId } },
+      include: {
+        entries: { orderBy: { date: "desc" } },
+      },
+    }),
+    prisma.scrumMaster.findUnique({ where: { id: session.scrumMasterId } }),
+  ]);
 
-  if (!developer) {
+  if (!developer || !scrumMaster) {
     notFound();
   }
+
+  const questionLabels = {
+    doing: scrumMaster.questionDoingLabel,
+    blocked: scrumMaster.questionBlockedLabel,
+    improve: scrumMaster.questionImproveLabel,
+  };
 
   const today = todayDateOnlyUTC();
   const todayEntry = developer.entries.find((entry) => entry.date.getTime() === today.getTime());
@@ -45,17 +54,23 @@ export default async function DeveloperPage({
           developerId={developer.id}
           dateValue={dateToInputValue(today)}
           dateLabel={formatFullDate(today)}
+          questionLabels={questionLabels}
           defaultValues={{
             doing: todayEntry?.doing ?? "",
             blocked: todayEntry?.blocked ?? "",
             improve: todayEntry?.improve ?? "",
+            mood: todayEntry?.mood ?? "",
           }}
         />
       </div>
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">Histórico</h2>
-        <EntryHistory entries={pastEntries} />
+        <EntryHistory
+          entries={pastEntries}
+          developerId={developer.id}
+          questionLabels={questionLabels}
+        />
       </section>
     </div>
   );

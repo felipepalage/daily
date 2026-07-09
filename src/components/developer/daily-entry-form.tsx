@@ -1,48 +1,95 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { clsx } from "clsx";
 import { upsertDailyEntryAction } from "@/lib/actions/entry-actions";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
+const MOODS = [
+  { value: "otimo", emoji: "😄", label: "Ótimo" },
+  { value: "bem", emoji: "🙂", label: "Bem" },
+  { value: "neutro", emoji: "😐", label: "Neutro" },
+  { value: "dificil", emoji: "😕", label: "Difícil" },
+  { value: "pessimo", emoji: "😣", label: "Péssimo" },
+];
+
+export type QuestionLabels = {
+  doing: string;
+  blocked: string;
+  improve: string;
+};
+
 export function DailyEntryForm({
   developerId,
   dateValue,
   dateLabel,
+  title = "Check-in de hoje",
+  questionLabels,
   defaultValues,
+  onSuccess,
 }: {
   developerId: string;
   dateValue: string;
   dateLabel: string;
-  defaultValues: { doing: string; blocked: string; improve: string };
+  title?: string;
+  questionLabels: QuestionLabels;
+  defaultValues: { doing: string; blocked: string; improve: string; mood: string };
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(upsertDailyEntryAction, null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [mood, setMood] = useState(defaultValues.mood);
 
   useEffect(() => {
     if (state?.success) {
       setSavedAt(Date.now());
+      onSuccess?.();
       const timeout = setTimeout(() => setSavedAt(null), 3000);
       return () => clearTimeout(timeout);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   return (
     <Card className="p-6">
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Check-in de hoje</h2>
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <span className="text-sm text-foreground-muted">{dateLabel}</span>
       </div>
 
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="developerId" value={developerId} />
         <input type="hidden" name="date" value={dateValue} />
+        <input type="hidden" name="mood" value={mood} />
 
         <div>
-          <Label htmlFor="doing">O que está fazendo?</Label>
+          <Label>Como está o humor hoje?</Label>
+          <div className="flex gap-2">
+            {MOODS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                title={option.label}
+                onClick={() => setMood(mood === option.value ? "" : option.value)}
+                className={clsx(
+                  "flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition-colors cursor-pointer",
+                  mood === option.value
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:bg-surface-muted",
+                )}
+              >
+                {option.emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor={`doing-${dateValue}`}>{questionLabels.doing}</Label>
           <Textarea
-            id="doing"
+            id={`doing-${dateValue}`}
             name="doing"
             rows={3}
             required
@@ -52,9 +99,9 @@ export function DailyEntryForm({
         </div>
 
         <div>
-          <Label htmlFor="blocked">O que está travado?</Label>
+          <Label htmlFor={`blocked-${dateValue}`}>{questionLabels.blocked}</Label>
           <Textarea
-            id="blocked"
+            id={`blocked-${dateValue}`}
             name="blocked"
             rows={3}
             defaultValue={defaultValues.blocked}
@@ -63,9 +110,9 @@ export function DailyEntryForm({
         </div>
 
         <div>
-          <Label htmlFor="improve">O que pode melhorar?</Label>
+          <Label htmlFor={`improve-${dateValue}`}>{questionLabels.improve}</Label>
           <Textarea
-            id="improve"
+            id={`improve-${dateValue}`}
             name="improve"
             rows={3}
             defaultValue={defaultValues.improve}

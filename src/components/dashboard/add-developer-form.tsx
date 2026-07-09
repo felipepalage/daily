@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
-export function AddDeveloperForm() {
+export function AddDeveloperForm({ teamId }: { teamId: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(createDeveloperAction, null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -31,6 +31,7 @@ export function AddDeveloperForm() {
   return (
     <Card className="w-full max-w-md p-5">
       <form ref={formRef} action={formAction} className="space-y-4">
+        <input type="hidden" name="teamId" value={teamId} />
         <div>
           <Label htmlFor="name">Nome</Label>
           <Input id="name" name="name" placeholder="Ex: Ana Souza" required autoFocus />

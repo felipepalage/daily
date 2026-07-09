@@ -1,5 +1,19 @@
-import { formatFullDate } from "@/lib/date";
+"use client";
+
+import { useState } from "react";
+import { formatFullDate, dateToInputValue } from "@/lib/date";
+import { deleteEntryAction } from "@/lib/actions/entry-actions";
 import { Card } from "@/components/ui/card";
+import { DailyEntryForm, type QuestionLabels } from "@/components/developer/daily-entry-form";
+import { ScrumNote } from "@/components/developer/scrum-note";
+
+const MOOD_EMOJI: Record<string, string> = {
+  otimo: "😄",
+  bem: "🙂",
+  neutro: "😐",
+  dificil: "😕",
+  pessimo: "😣",
+};
 
 type Entry = {
   id: string;
@@ -7,9 +21,97 @@ type Entry = {
   doing: string;
   blocked: string;
   improve: string;
+  mood: string | null;
+  scrumNote: string | null;
 };
 
-export function EntryHistory({ entries }: { entries: Entry[] }) {
+function EntryItem({
+  entry,
+  developerId,
+  questionLabels,
+}: {
+  entry: Entry;
+  developerId: string;
+  questionLabels: QuestionLabels;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <DailyEntryForm
+        developerId={developerId}
+        dateValue={dateToInputValue(entry.date)}
+        dateLabel={formatFullDate(entry.date)}
+        title="Editar check-in"
+        questionLabels={questionLabels}
+        defaultValues={{
+          doing: entry.doing,
+          blocked: entry.blocked,
+          improve: entry.improve,
+          mood: entry.mood ?? "",
+        }}
+        onSuccess={() => setEditing(false)}
+      />
+    );
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground-muted">
+          {entry.mood && <span className="mr-1.5">{MOOD_EMOJI[entry.mood]}</span>}
+          {formatFullDate(entry.date)}
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-xs font-medium text-primary hover:underline cursor-pointer"
+          >
+            Editar
+          </button>
+          <form action={deleteEntryAction.bind(null, entry.id)}>
+            <button
+              type="submit"
+              className="text-xs font-medium text-foreground-muted hover:text-accent cursor-pointer"
+            >
+              Excluir
+            </button>
+          </form>
+        </div>
+      </div>
+      <dl className="space-y-2.5 text-sm">
+        <div>
+          <dt className="font-medium text-foreground">{questionLabels.doing}</dt>
+          <dd className="text-foreground-muted whitespace-pre-wrap">{entry.doing}</dd>
+        </div>
+        {entry.blocked && (
+          <div>
+            <dt className="font-medium text-foreground">{questionLabels.blocked}</dt>
+            <dd className="text-foreground-muted whitespace-pre-wrap">{entry.blocked}</dd>
+          </div>
+        )}
+        {entry.improve && (
+          <div>
+            <dt className="font-medium text-foreground">{questionLabels.improve}</dt>
+            <dd className="text-foreground-muted whitespace-pre-wrap">{entry.improve}</dd>
+          </div>
+        )}
+      </dl>
+      <ScrumNote entryId={entry.id} initialNote={entry.scrumNote ?? ""} />
+    </Card>
+  );
+}
+
+export function EntryHistory({
+  entries,
+  developerId,
+  questionLabels,
+}: {
+  entries: Entry[];
+  developerId: string;
+  questionLabels: QuestionLabels;
+}) {
   if (entries.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-foreground-muted">
@@ -21,29 +123,12 @@ export function EntryHistory({ entries }: { entries: Entry[] }) {
   return (
     <div className="space-y-3">
       {entries.map((entry) => (
-        <Card key={entry.id} className="p-5">
-          <p className="mb-3 text-sm font-medium text-foreground-muted">
-            {formatFullDate(entry.date)}
-          </p>
-          <dl className="space-y-2.5 text-sm">
-            <div>
-              <dt className="font-medium text-foreground">O que estava fazendo</dt>
-              <dd className="text-foreground-muted whitespace-pre-wrap">{entry.doing}</dd>
-            </div>
-            {entry.blocked && (
-              <div>
-                <dt className="font-medium text-foreground">O que estava travado</dt>
-                <dd className="text-foreground-muted whitespace-pre-wrap">{entry.blocked}</dd>
-              </div>
-            )}
-            {entry.improve && (
-              <div>
-                <dt className="font-medium text-foreground">O que podia melhorar</dt>
-                <dd className="text-foreground-muted whitespace-pre-wrap">{entry.improve}</dd>
-              </div>
-            )}
-          </dl>
-        </Card>
+        <EntryItem
+          key={entry.id}
+          entry={entry}
+          developerId={developerId}
+          questionLabels={questionLabels}
+        />
       ))}
     </div>
   );

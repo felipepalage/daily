@@ -1,20 +1,24 @@
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { todayDateOnlyUTC, formatFullDate } from "@/lib/date";
+import { getActiveTeam } from "@/lib/team";
+import { computeBlockedStreak } from "@/lib/blocked-streak";
 import { AddDeveloperForm } from "@/components/dashboard/add-developer-form";
 import { DeveloperCard } from "@/components/dashboard/developer-card";
 
 export default async function DashboardPage() {
   const session = await requireSession();
   const today = todayDateOnlyUTC();
+  const { activeTeam } = await getActiveTeam(session.scrumMasterId);
 
   const developers = await prisma.developer.findMany({
-    where: { scrumMasterId: session.scrumMasterId },
+    where: { teamId: activeTeam.id },
     orderBy: { createdAt: "asc" },
     include: {
       entries: {
-        where: { date: today },
-        select: { id: true },
+        orderBy: { date: "desc" },
+        take: 7,
+        select: { date: true, blocked: true },
       },
     },
   });
@@ -27,18 +31,18 @@ export default async function DashboardPage() {
           Olá, {session.name.split(" ")[0]}
         </h1>
         <p className="mt-1 text-sm text-foreground-muted">
-          Acompanhe o check-in diário do seu time.
+          Acompanhe o check-in diário do time &ldquo;{activeTeam.name}&rdquo;.
         </p>
       </header>
 
       <div className="mb-6">
-        <AddDeveloperForm />
+        <AddDeveloperForm teamId={activeTeam.id} />
       </div>
 
       {developers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="text-foreground-muted">
-            Nenhum desenvolvedor cadastrado ainda. Adicione o primeiro do seu time para começar
+            Nenhum desenvolvedor cadastrado ainda. Adicione o primeiro do time para começar
             os check-ins diários.
           </p>
         </div>
@@ -50,7 +54,8 @@ export default async function DashboardPage() {
               id={developer.id}
               name={developer.name}
               role={developer.role}
-              checkedInToday={developer.entries.length > 0}
+              checkedInToday={developer.entries.some((entry) => entry.date.getTime() === today.getTime())}
+              blockedStreak={computeBlockedStreak(developer.entries)}
             />
           ))}
         </div>

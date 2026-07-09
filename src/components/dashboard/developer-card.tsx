@@ -16,11 +16,13 @@ export function DeveloperCard({
   name,
   role,
   checkedInToday,
+  blockedStreak,
 }: {
   id: string;
   name: string;
   role: string | null;
   checkedInToday: boolean;
+  blockedStreak: number;
 }) {
   return (
     <div className="group relative rounded-2xl border border-border bg-surface p-5 shadow-sm shadow-black/[0.02] transition-shadow hover:shadow-md">
@@ -56,6 +58,12 @@ export function DeveloperCard({
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {checkedInToday ? "Check-in feito hoje" : "Sem check-in hoje"}
         </span>
+
+        {blockedStreak >= 2 && (
+          <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+            ⚠ Travado há {blockedStreak} check-ins seguidos
+          </span>
+        )}
       </Link>
     </div>
   );

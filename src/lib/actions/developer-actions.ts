@@ -15,17 +15,21 @@ export async function createDeveloperAction(
   const session = await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const role = String(formData.get("role") ?? "").trim();
+  const teamId = String(formData.get("teamId") ?? "");
 
   if (!name) {
     return { error: "Informe o nome do desenvolvedor." };
   }
 
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, scrumMasterId: session.scrumMasterId },
+  });
+  if (!team) {
+    return { error: "Time não encontrado." };
+  }
+
   await prisma.developer.create({
-    data: {
-      name,
-      role: role || null,
-      scrumMasterId: session.scrumMasterId,
-    },
+    data: { name, role: role || null, teamId: team.id },
   });
 
   revalidatePath("/dashboard");
@@ -36,7 +40,7 @@ export async function deleteDeveloperAction(developerId: string) {
   const session = await requireSession();
 
   await prisma.developer.deleteMany({
-    where: { id: developerId, scrumMasterId: session.scrumMasterId },
+    where: { id: developerId, team: { scrumMasterId: session.scrumMasterId } },
   });
 
   revalidatePath("/dashboard");

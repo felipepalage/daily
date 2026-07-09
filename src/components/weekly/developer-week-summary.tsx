@@ -1,6 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { clsx } from "clsx";
 
+const MOOD_EMOJI: Record<string, string> = {
+  otimo: "😄",
+  bem: "🙂",
+  neutro: "😐",
+  dificil: "😕",
+  pessimo: "😣",
+};
+
 export type WeekDayEntry = {
   label: string;
   shortDate: string;
@@ -8,6 +16,7 @@ export type WeekDayEntry = {
   doing: string;
   blocked: string;
   improve: string;
+  mood: string | null;
 };
 
 export function DeveloperWeekSummary({
@@ -43,6 +52,7 @@ export function DeveloperWeekSummary({
             )}
           >
             <p className="mb-2 text-sm font-medium text-foreground">
+              {day.mood && <span className="mr-1.5">{MOOD_EMOJI[day.mood]}</span>}
               {day.label} · {day.shortDate}
             </p>
             {day.hasEntry ? (
