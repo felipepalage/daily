@@ -40,6 +40,15 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
           <Label htmlFor="role">Função (opcional)</Label>
           <Input id="role" name="role" placeholder="Ex: Backend, Frontend, QA" />
         </div>
+        <div>
+          <Label htmlFor="email">E-mail do dev (opcional)</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="Para receber o link e lembretes por e-mail"
+          />
+        </div>
         {state?.error && (
           <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
         )}

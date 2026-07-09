@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { todayDateOnlyUTC, dateToInputValue, formatFullDate } from "@/lib/date";
 import { DailyEntryForm } from "@/components/developer/daily-entry-form";
 import { EntryHistory } from "@/components/developer/entry-history";
+import { CopyCheckinLink } from "@/components/developer/copy-checkin-link";
 
 export default async function DeveloperPage({
   params,
@@ -44,10 +45,14 @@ export default async function DeveloperPage({
         ← Voltar
       </Link>
 
-      <header className="mb-8">
+      <header className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">{developer.name}</h1>
         {developer.role && <p className="mt-1 text-sm text-foreground-muted">{developer.role}</p>}
       </header>
+
+      <div className="mb-8">
+        <CopyCheckinLink token={developer.publicToken} />
+      </div>
 
       <div className="mb-10">
         <DailyEntryForm

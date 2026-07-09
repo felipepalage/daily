@@ -22,6 +22,13 @@ async function hasValidSession(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Link público de check-in do dev: acessível sem login, e não redireciona
+  // embora o navegador tenha uma sessão de scrum master ativa.
+  if (pathname.startsWith("/checkin/")) {
+    return NextResponse.next();
+  }
+
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
   const isAuthenticated = await hasValidSession(request);
 

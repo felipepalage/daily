@@ -15,6 +15,7 @@ export async function createDeveloperAction(
   const session = await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const role = String(formData.get("role") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const teamId = String(formData.get("teamId") ?? "");
 
   if (!name) {
@@ -29,7 +30,7 @@ export async function createDeveloperAction(
   }
 
   await prisma.developer.create({
-    data: { name, role: role || null, teamId: team.id },
+    data: { name, role: role || null, email: email || null, teamId: team.id },
   });
 
   revalidatePath("/dashboard");

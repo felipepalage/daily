@@ -1,9 +1,10 @@
 # Daily
 
 Aplicação para o scrum master acompanhar o dia a dia do time. Cada desenvolvedor
-responde três perguntas por dia (customizáveis) — o que está fazendo, o que está
-travado e o que pode melhorar — e o scrum master consegue ver um resumo semanal
-consolidado, exportável em PDF ou CSV.
+preenche o próprio check-in por um link individual (sem precisar de login),
+respondendo três perguntas por dia (customizáveis) — o que está fazendo, o que
+está travado e o que pode melhorar — e o scrum master consegue ver um resumo
+semanal consolidado, exportável em PDF ou CSV.
 
 ## Stack
 
@@ -44,10 +45,16 @@ na primeira visita ao dashboard — dá pra criar mais times pelo seletor na sid
 - `src/lib/weekly-reset.ts` — apaga os check-ins da semana anterior automaticamente.
 - `src/app/dashboard` — visão geral do time, página de cada desenvolvedor
   (check-in diário + histórico editável), configurações e o resumo semanal.
+- `src/app/checkin/[token]` — página pública (sem login) onde o próprio dev
+  preenche o check-in de hoje, usando o link individual gerado para ele.
 - `src/app/api/cron/reminder` — endpoint para lembrete diário por e-mail (ver abaixo).
 
 ## Funcionalidades
 
+- **Check-in por link individual** — cada dev tem uma URL própria
+  (`/checkin/<token>`, sem senha nem login) onde preenche só o check-in dele.
+  O scrum master gera/copia esse link na página do desenvolvedor. O scrum
+  master continua podendo preencher/editar por ele também, se precisar.
 - **Múltiplos times** — um scrum master pode ter vários times; o seletor na
   sidebar troca o time ativo (guardado num cookie).
 - **Editar/excluir check-ins passados** — cada item do histórico tem "Editar" e
@@ -63,9 +70,10 @@ na primeira visita ao dashboard — dá pra criar mais times pelo seletor na sid
 - **Esqueci minha senha** — fluxo completo de recuperação por e-mail (link
   expira em 1h). Sem SMTP configurado, o link é só impresso no log do servidor.
 - **Exportar semanal em PDF ou CSV** — botões na tela de resumo semanal.
-- **Lembrete diário por e-mail** — endpoint `POST /api/cron/reminder` que avisa
-  cada scrum master por e-mail sobre quem ainda não fez check-in hoje (ver seção
-  abaixo para agendar).
+- **Lembrete diário por e-mail** — endpoint `POST /api/cron/reminder` que, de
+  segunda a sexta, avisa cada dev (com e-mail cadastrado) com o próprio link de
+  check-in, e avisa o scrum master com o resumo de quem falta preencher (ver
+  seção abaixo para agendar).
 
 ## Reset semanal automático
 
@@ -85,7 +93,7 @@ no meio da semana não apagam nada, só a virada de segunda-feira apaga.
 Diferente do reset semanal, o lembrete de check-in pendente precisa de um
 gatilho externo de verdade (não faz sentido esperar alguém abrir o app para
 avisar que ninguém abriu o app). Configure um cron/scheduler do seu provedor
-para chamar, uma vez por dia útil:
+para chamar, todo dia (o endpoint já ignora sábado/domingo sozinho):
 
 ```bash
 curl -X POST https://seu-dominio.com/api/cron/reminder \
@@ -93,7 +101,9 @@ curl -X POST https://seu-dominio.com/api/cron/reminder \
 ```
 
 Sem `CRON_SECRET` configurado nas variáveis de ambiente, o endpoint sempre
-responde 401. Sem SMTP configurado, os e-mails são só impressos no log.
+responde 401. Sem SMTP configurado, os e-mails são só impressos no log. Sem
+e-mail cadastrado num dev, ele não recebe lembrete (mas o scrum master ainda
+recebe o resumo de quem falta).
 
 ## Deploy em produção
 
@@ -127,8 +137,9 @@ do próprio arquivo do banco, então roda bem atrás de um Nginx/reverse proxy c
 
 1. O scrum master cria uma conta; um time principal é criado automaticamente
    (dá pra adicionar mais times pelo seletor na sidebar).
-2. Adiciona os desenvolvedores do time.
-3. Cada dia, preenche o check-in do desenvolvedor com as três perguntas (e o
-   humor do dia).
-4. Na aba "Resumo semanal", navega entre semanas e vê o consolidado de cada
-   desenvolvedor, com opção de exportar em PDF ou CSV.
+2. Adiciona os desenvolvedores do time (com e-mail, se quiser lembrete automático).
+3. Copia o link individual de cada dev (na página dele) e envia por WhatsApp,
+   Slack, e-mail etc. Cada dev acessa o próprio link todo dia e preenche as
+   três perguntas — sem precisar de login.
+4. Na aba "Resumo semanal", o scrum master navega entre semanas e vê o
+   consolidado de cada desenvolvedor, com opção de exportar em PDF ou CSV.

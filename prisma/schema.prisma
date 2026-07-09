@@ -40,13 +40,15 @@ model Team {
 }
 
 model Developer {
-  id        String       @id @default(cuid())
-  name      String
-  role      String?
-  createdAt DateTime     @default(now())
-  teamId    String
-  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  entries   DailyEntry[]
+  id          String       @id @default(cuid())
+  name        String
+  role        String?
+  email       String?
+  publicToken String       @unique @default(cuid())
+  createdAt   DateTime     @default(now())
+  teamId      String
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  entries     DailyEntry[]
 }
 
 model DailyEntry {
