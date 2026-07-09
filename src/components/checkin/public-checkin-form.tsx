@@ -63,17 +63,17 @@ export function PublicCheckinForm({
 
       <div>
         <Label htmlFor="doing">{questionLabels.doing}</Label>
-        <Textarea id="doing" name="doing" rows={3} required defaultValue={defaultValues.doing} />
+        <Textarea id="doing" name="doing" rows={5} required defaultValue={defaultValues.doing} />
       </div>
 
       <div>
         <Label htmlFor="blocked">{questionLabels.blocked}</Label>
-        <Textarea id="blocked" name="blocked" rows={3} defaultValue={defaultValues.blocked} />
+        <Textarea id="blocked" name="blocked" rows={5} defaultValue={defaultValues.blocked} />
       </div>
 
       <div>
         <Label htmlFor="improve">{questionLabels.improve}</Label>
-        <Textarea id="improve" name="improve" rows={3} defaultValue={defaultValues.improve} />
+        <Textarea id="improve" name="improve" rows={5} defaultValue={defaultValues.improve} />
       </div>
 
       {state?.error && (

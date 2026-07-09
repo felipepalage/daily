@@ -91,7 +91,7 @@ export function DailyEntryForm({
           <Textarea
             id={`doing-${dateValue}`}
             name="doing"
-            rows={3}
+            rows={5}
             required
             defaultValue={defaultValues.doing}
             placeholder="Ex: Finalizando a integração com o serviço de pagamentos"
@@ -103,7 +103,7 @@ export function DailyEntryForm({
           <Textarea
             id={`blocked-${dateValue}`}
             name="blocked"
-            rows={3}
+            rows={5}
             defaultValue={defaultValues.blocked}
             placeholder="Ex: Aguardando acesso ao ambiente de homologação"
           />
@@ -114,7 +114,7 @@ export function DailyEntryForm({
           <Textarea
             id={`improve-${dateValue}`}
             name="improve"
-            rows={3}
+            rows={5}
             defaultValue={defaultValues.improve}
             placeholder="Ex: Melhorar a comunicação sobre dependências entre tarefas"
           />
