@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { clsx } from "clsx";
-import { deleteDeveloperAction } from "@/lib/actions/developer-actions";
+import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
 function initials(name: string) {
   return name
@@ -26,15 +26,7 @@ export function DeveloperCard({
 }) {
   return (
     <div className="group relative rounded-2xl border border-border bg-surface p-5 shadow-sm shadow-black/[0.02] transition-shadow hover:shadow-md">
-      <form action={deleteDeveloperAction.bind(null, id)} className="absolute right-3 top-3">
-        <button
-          type="submit"
-          aria-label="Remover desenvolvedor"
-          className="cursor-pointer rounded-lg p-1.5 text-foreground-muted opacity-0 transition-opacity hover:bg-accent/10 hover:text-accent group-hover:opacity-100"
-        >
-          ✕
-        </button>
-      </form>
+      <DeleteDeveloperButton id={id} name={name} />
 
       <Link href={`/dashboard/developers/${id}`} className="flex flex-col gap-4">
         <div className="flex items-center gap-3">

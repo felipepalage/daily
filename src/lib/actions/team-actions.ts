@@ -5,10 +5,23 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { ACTIVE_TEAM_COOKIE } from "@/lib/team";
+import { isSecureCookieContext } from "@/lib/cookie-options";
 
 export type TeamActionState = {
   error?: string;
 } | null;
+
+function setActiveTeamCookie(teamId: string) {
+  return cookies().then((cookieStore) => {
+    cookieStore.set(ACTIVE_TEAM_COOKIE, teamId, {
+      httpOnly: true,
+      secure: isSecureCookieContext(),
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  });
+}
 
 export async function createTeamAction(
   _prevState: TeamActionState,
@@ -25,14 +38,7 @@ export async function createTeamAction(
     data: { name, scrumMasterId: session.scrumMasterId },
   });
 
-  const cookieStore = await cookies();
-  cookieStore.set(ACTIVE_TEAM_COOKIE, team.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  await setActiveTeamCookie(team.id);
 
   revalidatePath("/dashboard");
   return null;
@@ -47,14 +53,24 @@ export async function switchTeamAction(formData: FormData) {
   });
   if (!team) return;
 
+  await setActiveTeamCookie(team.id);
+
+  revalidatePath("/dashboard");
+}
+
+export async function deleteTeamAction(teamId: string) {
+  const session = await requireSession();
+
   const cookieStore = await cookies();
-  cookieStore.set(ACTIVE_TEAM_COOKIE, team.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
+  const activeTeamId = cookieStore.get(ACTIVE_TEAM_COOKIE)?.value;
+
+  await prisma.team.deleteMany({
+    where: { id: teamId, scrumMasterId: session.scrumMasterId },
   });
+
+  if (activeTeamId === teamId) {
+    cookieStore.delete(ACTIVE_TEAM_COOKIE);
+  }
 
   revalidatePath("/dashboard");
 }

@@ -6,6 +6,7 @@ import { todayDateOnlyUTC, dateToInputValue, formatFullDate } from "@/lib/date";
 import { DailyEntryForm } from "@/components/developer/daily-entry-form";
 import { EntryHistory } from "@/components/developer/entry-history";
 import { CopyCheckinLink } from "@/components/developer/copy-checkin-link";
+import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
 export default async function DeveloperPage({
   params,
@@ -45,9 +46,12 @@ export default async function DeveloperPage({
         ← Voltar
       </Link>
 
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">{developer.name}</h1>
-        {developer.role && <p className="mt-1 text-sm text-foreground-muted">{developer.role}</p>}
+      <header className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{developer.name}</h1>
+          {developer.role && <p className="mt-1 text-sm text-foreground-muted">{developer.role}</p>}
+        </div>
+        <DeleteDeveloperButton id={developer.id} name={developer.name} variant="text" />
       </header>
 
       <div className="mb-8">

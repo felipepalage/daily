@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { createTeamAction, switchTeamAction } from "@/lib/actions/team-actions";
+import { useActionState, useEffect, useRef, useState, type MouseEvent } from "react";
+import { createTeamAction, deleteTeamAction, switchTeamAction } from "@/lib/actions/team-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -27,11 +27,23 @@ export function TeamSwitcher({
     wasPending.current = pending;
   }, [pending, state]);
 
+  const activeTeam = teams.find((team) => team.id === activeTeamId);
+
+  function handleDeleteTeam(e: MouseEvent<HTMLButtonElement>) {
+    const confirmed = window.confirm(
+      `Excluir o time "${activeTeam?.name}"? Isso apaga também todos os desenvolvedores e o histórico de check-ins desse time. Não dá pra desfazer.`,
+    );
+    if (!confirmed) {
+      e.preventDefault();
+    }
+  }
+
   return (
     <div className="mb-4 px-2">
       {teams.length > 1 && (
         <form action={switchTeamAction}>
           <select
+            key={activeTeamId}
             name="teamId"
             defaultValue={activeTeamId}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
@@ -47,13 +59,24 @@ export function TeamSwitcher({
       )}
 
       {!creating ? (
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="text-xs font-medium text-foreground-muted hover:text-primary cursor-pointer"
-        >
-          + Novo time
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="text-xs font-medium text-foreground-muted hover:text-primary cursor-pointer"
+          >
+            + Novo time
+          </button>
+          <form action={deleteTeamAction.bind(null, activeTeamId)}>
+            <button
+              type="submit"
+              onClick={handleDeleteTeam}
+              className="text-xs font-medium text-foreground-muted hover:text-accent cursor-pointer"
+            >
+              Excluir time atual
+            </button>
+          </form>
+        </div>
       ) : (
         <form ref={formRef} action={formAction} className="space-y-2">
           <Input

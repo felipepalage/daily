@@ -1,15 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { isSecureCookieContext } from "@/lib/cookie-options";
 
 const SESSION_COOKIE = "daily_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
-
-// O cookie só pode ser "Secure" quando o app é servido via HTTPS de fato —
-// caso contrário o navegador aceita o cookie no login mas descarta ele nas
-// navegações seguintes. NODE_ENV=production não implica HTTPS (ex: acesso
-// direto por IP sem domínio/SSL ainda configurado).
-const isHttps = process.env.APP_URL?.startsWith("https://") ?? false;
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -43,7 +38,7 @@ export async function createSession(payload: SessionPayload) {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: isHttps,
+    secure: isSecureCookieContext(),
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION_SECONDS,
