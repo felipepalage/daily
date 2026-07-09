@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model ScrumMaster {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  developers   Developer[]
+}
+
+model Developer {
+  id            String       @id @default(cuid())
+  name          String
+  role          String?
+  createdAt     DateTime     @default(now())
+  scrumMasterId String
+  scrumMaster   ScrumMaster  @relation(fields: [scrumMasterId], references: [id], onDelete: Cascade)
+  entries       DailyEntry[]
+}
+
+model DailyEntry {
+  id          String    @id @default(cuid())
+  date        DateTime
+  doing       String
+  blocked     String
+  improve     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  developerId String
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@unique([developerId, date])
+  @@index([date])
+}
