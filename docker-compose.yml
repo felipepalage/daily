@@ -1,0 +1,11 @@
+services:
+  daily:
+    build: .
+    image: daily-app
+    container_name: daily
+    restart: unless-stopped
+    ports:
+      # Acesse pelo navegador em http://IP-DO-SERVIDOR:3000
+      - "3000:3000"
+    env_file:
+      - .env
