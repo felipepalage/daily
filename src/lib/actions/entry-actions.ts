@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
-import { inputValueToDateOnlyUTC } from "@/lib/date";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export type EntryActionState = {
   error?: string;
@@ -14,7 +13,7 @@ export async function upsertDailyEntryAction(
   _prevState: EntryActionState,
   formData: FormData,
 ): Promise<EntryActionState> {
-  const session = await requireSession();
+  await requireSession();
 
   const developerId = String(formData.get("developerId") ?? "");
   const dateValue = String(formData.get("date") ?? "");
@@ -31,45 +30,42 @@ export async function upsertDailyEntryAction(
     return { error: "Conte pelo menos o que está sendo feito hoje." };
   }
 
-  const developer = await prisma.developer.findFirst({
-    where: { id: developerId, team: { scrumMasterId: session.scrumMasterId } },
-  });
-  if (!developer) {
-    return { error: "Desenvolvedor não encontrado." };
+  try {
+    await apiFetch("/entries", {
+      method: "POST",
+      body: {
+        developerId,
+        date: dateValue,
+        doing,
+        blocked,
+        improve,
+        mood: mood || null,
+        featureNumber: featureNumber || null,
+        blockerNumber: blockerNumber || null,
+        epicNumber: epicNumber || null,
+        taskNumber: taskNumber || null,
+      },
+    });
+
+    revalidatePath(`/dashboard/developers/${developerId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/weekly");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Erro ao salvar check-in." };
   }
-
-  const date = inputValueToDateOnlyUTC(dateValue);
-
-  const issueData = {
-    featureNumber: featureNumber || null,
-    blockerNumber: blockerNumber || null,
-    epicNumber: epicNumber || null,
-    taskNumber: taskNumber || null,
-  };
-
-  await prisma.dailyEntry.upsert({
-    where: { developerId_date: { developerId, date } },
-    update: { doing, blocked, improve, mood: mood || null, ...issueData },
-    create: { developerId, date, doing, blocked, improve, mood: mood || null, ...issueData },
-  });
-
-  revalidatePath(`/dashboard/developers/${developerId}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/weekly");
-  return { success: true };
 }
 
 export async function deleteEntryAction(entryId: string) {
-  const session = await requireSession();
+  await requireSession();
 
-  const entry = await prisma.dailyEntry.findFirst({
-    where: { id: entryId, developer: { team: { scrumMasterId: session.scrumMasterId } } },
-  });
-  if (!entry) return;
+  try {
+    await apiFetch(`/entries/${entryId}`, { method: "DELETE" });
+  } catch {
+    // se falhou, ignora
+  }
 
-  await prisma.dailyEntry.delete({ where: { id: entryId } });
-
-  revalidatePath(`/dashboard/developers/${entry.developerId}`);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/weekly");
 }
@@ -80,23 +76,25 @@ export async function updateScrumNoteAction(
   _prevState: ScrumNoteActionState,
   formData: FormData,
 ): Promise<ScrumNoteActionState> {
-  const session = await requireSession();
+  await requireSession();
 
   const entryId = String(formData.get("entryId") ?? "");
   const scrumNote = String(formData.get("scrumNote") ?? "").trim();
 
-  const entry = await prisma.dailyEntry.findFirst({
-    where: { id: entryId, developer: { team: { scrumMasterId: session.scrumMasterId } } },
-  });
-  if (!entry) {
+  if (!entryId) {
     return { error: "Check-in não encontrado." };
   }
 
-  await prisma.dailyEntry.update({
-    where: { id: entryId },
-    data: { scrumNote: scrumNote || null },
-  });
+  try {
+    await apiFetch(`/entries/${entryId}/scrum-note`, {
+      method: "PUT",
+      body: { scrumNote: scrumNote || null },
+    });
 
-  revalidatePath(`/dashboard/developers/${entry.developerId}`);
-  return null;
+    revalidatePath("/dashboard");
+    return null;
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Erro ao salvar nota do scrum." };
+  }
 }

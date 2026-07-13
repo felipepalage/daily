@@ -1,8 +1,39 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { apiFetch } from "@/lib/api";
 import { todayDateOnlyUTC, formatFullDate } from "@/lib/date";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PublicCheckinForm } from "@/components/checkin/public-checkin-form";
+
+type DeveloperWithTeamDto = {
+  id: string;
+  name: string;
+  role: string | null;
+  publicToken: string | null;
+  team: {
+    id: string;
+    name: string;
+    scrumMaster: {
+      questionDoingLabel: string;
+      questionBlockedLabel: string;
+      questionImproveLabel: string;
+    };
+  };
+};
+
+type EntryDto = {
+  id: string;
+  developerId: string;
+  date: string;
+  doing: string;
+  blocked: string;
+  improve: string;
+  mood: string | null;
+  scrumNote: string | null;
+  featureNumber: string | null;
+  blockerNumber: string | null;
+  epicNumber: string | null;
+  taskNumber: string | null;
+};
 
 export default async function PublicCheckinPage({
   params,
@@ -11,19 +42,28 @@ export default async function PublicCheckinPage({
 }) {
   const { token } = await params;
 
-  const developer = await prisma.developer.findUnique({
-    where: { publicToken: token },
-    include: { team: { include: { scrumMaster: true } } },
-  });
+  // Busca dados do desenvolvedor via API pública
+  let developer: DeveloperWithTeamDto | null = null;
+  let todayEntry: EntryDto | null = null;
 
-  if (!developer) {
+  try {
+    developer = await apiFetch<DeveloperWithTeamDto>(`/public/developer/${token}`, {
+      anonymous: true,
+    });
+  } catch {
     notFound();
   }
 
   const today = todayDateOnlyUTC();
-  const todayEntry = await prisma.dailyEntry.findUnique({
-    where: { developerId_date: { developerId: developer.id, date: today } },
-  });
+  const todayStr = today.toISOString().split("T")[0];
+
+  try {
+    todayEntry = await apiFetch<EntryDto>(`/public/entry/${token}?date=${todayStr}`, {
+      anonymous: true,
+    });
+  } catch {
+    todayEntry = null;
+  }
 
   const questionLabels = {
     doing: developer.team.scrumMaster.questionDoingLabel,

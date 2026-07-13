@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { apiFetch } from "@/lib/api";
 import { getActiveTeam } from "@/lib/team";
 import { Card } from "@/components/ui/card";
 import { QuestionLabelsForm } from "@/components/dashboard/question-labels-form";
@@ -9,18 +9,50 @@ import { RedmineConfigForm } from "@/components/dashboard/redmine-config-form";
 import { AddDeveloperForm } from "@/components/dashboard/add-developer-form";
 import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
+type ScrumMasterDto = {
+  id: string;
+  name: string;
+  email: string;
+  questionDoingLabel: string;
+  questionBlockedLabel: string;
+  questionImproveLabel: string;
+  redmineUrl: string | null;
+  redmineApiKey: string | null;
+};
+
+type DeveloperDto = {
+  id: string;
+  name: string;
+  role: string | null;
+};
+
 export default async function SettingsPage() {
   const session = await requireSession();
-  const [scrumMaster, { activeTeam }] = await Promise.all([
-    prisma.scrumMaster.findUniqueOrThrow({ where: { id: session.scrumMasterId } }),
-    getActiveTeam(session.scrumMasterId),
-  ]);
+  const { activeTeam } = await getActiveTeam();
 
-  const developers = await prisma.developer.findMany({
-    where: { teamId: activeTeam.id },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, role: true },
-  });
+  // Busca dados do scrum master e developers via API
+  let scrumMaster: ScrumMasterDto | null = null;
+  let developers: DeveloperDto[] = [];
+
+  try {
+    scrumMaster = await apiFetch<ScrumMasterDto>("/auth/me");
+  } catch {
+    // fallback: usa dados da sessão
+  }
+
+  if (activeTeam) {
+    try {
+      developers = await apiFetch<DeveloperDto[]>(`/teams/${activeTeam.id}/developers`);
+    } catch {
+      developers = [];
+    }
+  }
+
+  const questionLabels = {
+    doing: scrumMaster?.questionDoingLabel ?? "O que está sendo feito?",
+    blocked: scrumMaster?.questionBlockedLabel ?? "Tem algum impedimento?",
+    improve: scrumMaster?.questionImproveLabel ?? "O que pode melhorar?",
+  };
 
   return (
     <div className="max-w-lg space-y-8">
@@ -47,8 +79,8 @@ export default async function SettingsPage() {
         <Card className="p-6">
           <RedmineConfigForm
             initial={{
-              redmineUrl: scrumMaster.redmineUrl ?? "",
-              redmineApiKey: scrumMaster.redmineApiKey ?? "",
+              redmineUrl: scrumMaster?.redmineUrl ?? "",
+              redmineApiKey: scrumMaster?.redmineApiKey ?? "",
             }}
           />
         </Card>
@@ -59,23 +91,17 @@ export default async function SettingsPage() {
           Perguntas do check-in
         </h2>
         <Card className="p-6">
-          <QuestionLabelsForm
-            initialLabels={{
-              doing: scrumMaster.questionDoingLabel,
-              blocked: scrumMaster.questionBlockedLabel,
-              improve: scrumMaster.questionImproveLabel,
-            }}
-          />
+          <QuestionLabelsForm initialLabels={questionLabels} />
         </Card>
       </section>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-muted">
-          Desenvolvedores do time &ldquo;{activeTeam.name}&rdquo;
+          Desenvolvedores do time &ldquo;{activeTeam?.name ?? ""}&rdquo;
         </h2>
         <Card className="p-6">
           <div className="mb-4">
-            <AddDeveloperForm teamId={activeTeam.id} />
+            <AddDeveloperForm teamId={activeTeam?.id ?? ""} />
           </div>
           {developers.length === 0 ? (
             <p className="text-sm text-foreground-muted">Nenhum desenvolvedor no time ainda.</p>

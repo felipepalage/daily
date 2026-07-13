@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession } from "@/lib/auth";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export type AuthActionState = {
   error?: string;
@@ -29,23 +29,21 @@ export async function registerAction(
     return { error: "As senhas não conferem." };
   }
 
-  const existing = await prisma.scrumMaster.findUnique({ where: { email } });
-  if (existing) {
-    return { error: "Já existe uma conta com esse e-mail." };
+  try {
+    const data = await apiFetch<{ token: string }>("/auth/register", {
+      method: "POST",
+      body: { name, email, password },
+      anonymous: true,
+    });
+
+    await createSession(data.token);
+    redirect("/dashboard");
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return { error: err.message };
+    }
+    return { error: "Erro ao criar conta. Tente novamente." };
   }
-
-  const passwordHash = await hashPassword(password);
-  const scrumMaster = await prisma.scrumMaster.create({
-    data: { name, email, passwordHash },
-  });
-
-  await createSession({
-    scrumMasterId: scrumMaster.id,
-    name: scrumMaster.name,
-    email: scrumMaster.email,
-  });
-
-  redirect("/dashboard");
 }
 
 export async function loginAction(
@@ -59,23 +57,21 @@ export async function loginAction(
     return { error: "Preencha e-mail e senha." };
   }
 
-  const scrumMaster = await prisma.scrumMaster.findUnique({ where: { email } });
-  if (!scrumMaster) {
+  try {
+    const data = await apiFetch<{ token: string }>("/auth/login", {
+      method: "POST",
+      body: { email, password },
+      anonymous: true,
+    });
+
+    await createSession(data.token);
+    redirect("/dashboard");
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return { error: err.message };
+    }
     return { error: "E-mail ou senha inválidos." };
   }
-
-  const passwordMatches = await verifyPassword(password, scrumMaster.passwordHash);
-  if (!passwordMatches) {
-    return { error: "E-mail ou senha inválidos." };
-  }
-
-  await createSession({
-    scrumMasterId: scrumMaster.id,
-    name: scrumMaster.name,
-    email: scrumMaster.email,
-  });
-
-  redirect("/dashboard");
 }
 
 export async function logoutAction() {

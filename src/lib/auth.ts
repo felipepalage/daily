@@ -1,18 +1,6 @@
-import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
+import { apiFetch, TOKEN_COOKIE } from "@/lib/api";
 import { isSecureCookieContext } from "@/lib/cookie-options";
-
-const SESSION_COOKIE = "daily_session";
-const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
-
-function getSecretKey() {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    throw new Error("AUTH_SECRET não definido no .env");
-  }
-  return new TextEncoder().encode(secret);
-}
 
 export type SessionPayload = {
   scrumMasterId: string;
@@ -20,44 +8,52 @@ export type SessionPayload = {
   email: string;
 };
 
+// --- hash/verify delegam para a API (bcrypt fica no backend) ---
+// Mantidas aqui apenas para compatibilidade com imports existentes que usam
+// hashPassword / verifyPassword diretamente (ex: actions de settings).
+// A lógica de autenticação real (login) vai para a API.
+import bcrypt from "bcryptjs";
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
 }
-
 export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(payload: SessionPayload) {
-  const token = await new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
-    .sign(getSecretKey());
+// --- Sessão usando o token JWT da API ---
+// O token JWT é armazenado num cookie httpOnly.
+// createSession agora recebe o token JWT (string), não um payload,
+// pois quem gera o token é o backend.
 
+export async function createSession(token: string) {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
+  cookieStore.set(TOKEN_COOKIE, token, {
     httpOnly: true,
     secure: isSecureCookieContext(),
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_DURATION_SECONDS,
+    maxAge: 60 * 60 * 24 * 30,
   });
 }
 
 export async function destroySession() {
   const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(TOKEN_COOKIE);
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const token = cookieStore.get(TOKEN_COOKIE)?.value;
   if (!token) return null;
 
+  // Verifica o token contra a API (endpoint /auth/me), que devolve os dados
+  // do scrum master se o token for válido.
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
-    return payload as unknown as SessionPayload;
+    const me = await apiFetch<SessionPayload>("/auth/me", {
+      token,
+      cache: "no-store",
+    });
+    return me;
   } catch {
     return null;
   }
@@ -71,4 +67,4 @@ export async function requireSession(): Promise<SessionPayload> {
   return session;
 }
 
-export { SESSION_COOKIE };
+export { TOKEN_COOKIE as SESSION_COOKIE };

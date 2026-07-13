@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
-import { requireSession, hashPassword, verifyPassword } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export type SettingsActionState = { error?: string; success?: boolean } | null;
 
@@ -10,7 +10,7 @@ export async function updateQuestionLabelsAction(
   _prevState: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const session = await requireSession();
+  await requireSession();
 
   const questionDoingLabel = String(formData.get("questionDoingLabel") ?? "").trim();
   const questionBlockedLabel = String(formData.get("questionBlockedLabel") ?? "").trim();
@@ -20,21 +20,30 @@ export async function updateQuestionLabelsAction(
     return { error: "Preencha as três perguntas." };
   }
 
-  await prisma.scrumMaster.update({
-    where: { id: session.scrumMasterId },
-    data: { questionDoingLabel, questionBlockedLabel, questionImproveLabel },
-  });
+  try {
+    await apiFetch("/settings/questions", {
+      method: "PUT",
+      body: {
+        questionDoingLabel,
+        questionBlockedLabel,
+        questionImproveLabel,
+      },
+    });
 
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard");
-  return { success: true };
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Erro ao salvar perguntas." };
+  }
 }
 
 export async function changePasswordAction(
   _prevState: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const session = await requireSession();
+  await requireSession();
 
   const currentPassword = String(formData.get("currentPassword") ?? "");
   const newPassword = String(formData.get("newPassword") ?? "");
@@ -52,28 +61,24 @@ export async function changePasswordAction(
     return { error: "As senhas não conferem." };
   }
 
-  const scrumMaster = await prisma.scrumMaster.findUniqueOrThrow({
-    where: { id: session.scrumMasterId },
-  });
+  try {
+    await apiFetch("/settings/password", {
+      method: "PUT",
+      body: { currentPassword, newPassword },
+    });
 
-  const matches = await verifyPassword(currentPassword, scrumMaster.passwordHash);
-  if (!matches) {
-    return { error: "Senha atual incorreta." };
+    return { success: true };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Erro ao alterar senha." };
   }
-
-  await prisma.scrumMaster.update({
-    where: { id: session.scrumMasterId },
-    data: { passwordHash: await hashPassword(newPassword) },
-  });
-
-  return { success: true };
 }
 
 export async function updateRedmineConfigAction(
   _prevState: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const session = await requireSession();
+  await requireSession();
 
   const redmineUrlRaw = String(formData.get("redmineUrl") ?? "").trim();
   const redmineApiKey = String(formData.get("redmineApiKey") ?? "").trim();
@@ -85,14 +90,19 @@ export async function updateRedmineConfigAction(
     return { error: "A URL do Redmine deve começar com http:// ou https://" };
   }
 
-  await prisma.scrumMaster.update({
-    where: { id: session.scrumMasterId },
-    data: {
-      redmineUrl: redmineUrl || null,
-      redmineApiKey: redmineApiKey || null,
-    },
-  });
+  try {
+    await apiFetch("/settings/redmine", {
+      method: "PUT",
+      body: {
+        redmineUrl: redmineUrl || null,
+        redmineApiKey: redmineApiKey || null,
+      },
+    });
 
-  revalidatePath("/dashboard/settings");
-  return { success: true };
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Erro ao salvar configuração do Redmine." };
+  }
 }

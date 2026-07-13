@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export type DeveloperActionState = {
   error?: string;
@@ -13,7 +13,7 @@ export async function createDeveloperAction(
   _prevState: DeveloperActionState,
   formData: FormData,
 ): Promise<DeveloperActionState> {
-  const session = await requireSession();
+  await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const role = String(formData.get("role") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -23,27 +23,28 @@ export async function createDeveloperAction(
     return { error: "Informe o nome do desenvolvedor." };
   }
 
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, scrumMasterId: session.scrumMasterId },
-  });
-  if (!team) {
-    return { error: "Time não encontrado." };
+  try {
+    await apiFetch("/developers", {
+      method: "POST",
+      body: { name, role: role || null, email: email || null, teamId },
+    });
+
+    revalidatePath("/dashboard");
+    return null;
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Erro ao criar desenvolvedor." };
   }
-
-  await prisma.developer.create({
-    data: { name, role: role || null, email: email || null, teamId: team.id },
-  });
-
-  revalidatePath("/dashboard");
-  return null;
 }
 
 export async function deleteDeveloperAction(developerId: string) {
-  const session = await requireSession();
+  await requireSession();
 
-  await prisma.developer.deleteMany({
-    where: { id: developerId, team: { scrumMasterId: session.scrumMasterId } },
-  });
+  try {
+    await apiFetch(`/developers/${developerId}`, { method: "DELETE" });
+  } catch {
+    // se falhou, ignora
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard");

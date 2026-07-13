@@ -1,20 +1,34 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { apiFetch } from "@/lib/api";
 
 export const ACTIVE_TEAM_COOKIE = "daily_active_team";
 
-export const getActiveTeam = cache(async (scrumMasterId: string) => {
-  let teams = await prisma.team.findMany({
-    where: { scrumMasterId },
-    orderBy: { createdAt: "asc" },
-  });
+export type TeamData = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
 
+export const getActiveTeam = cache(async () => {
+  let teams: TeamData[];
+  try {
+    teams = await apiFetch<TeamData[]>("/teams");
+  } catch {
+    teams = [];
+  }
+
+  // Se não há times, cria um time padrão via API
   if (teams.length === 0) {
-    const defaultTeam = await prisma.team.create({
-      data: { name: "Time principal", scrumMasterId },
-    });
-    teams = [defaultTeam];
+    try {
+      const defaultTeam = await apiFetch<TeamData>("/teams", {
+        method: "POST",
+        body: { name: "Time principal" },
+      });
+      teams = [defaultTeam];
+    } catch {
+      return { teams: [] as TeamData[], activeTeam: null as TeamData | null };
+    }
   }
 
   const cookieStore = await cookies();

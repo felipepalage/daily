@@ -1,27 +1,78 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { apiFetch } from "@/lib/api";
 import { todayDateOnlyUTC, formatFullDate } from "@/lib/date";
 import { getActiveTeam } from "@/lib/team";
 import { computeBlockedStreak } from "@/lib/blocked-streak";
 import { DeveloperCard } from "@/components/dashboard/developer-card";
 
+type DeveloperDto = {
+  id: string;
+  name: string;
+  role: string | null;
+  email: string | null;
+  teamId: string;
+  publicToken: string | null;
+  createdAt: string;
+};
+
+type EntryDto = {
+  id: string;
+  developerId: string;
+  date: string;
+  doing: string;
+  blocked: string;
+  improve: string;
+  mood: string | null;
+  scrumNote: string | null;
+  featureNumber: string | null;
+  blockerNumber: string | null;
+  epicNumber: string | null;
+  taskNumber: string | null;
+};
+
 export default async function DashboardPage() {
   const session = await requireSession();
   const today = todayDateOnlyUTC();
-  const { activeTeam } = await getActiveTeam(session.scrumMasterId);
+  const { activeTeam } = await getActiveTeam();
 
-  const developers = await prisma.developer.findMany({
-    where: { teamId: activeTeam.id },
-    orderBy: { createdAt: "asc" },
-    include: {
-      entries: {
-        orderBy: { date: "desc" },
-        take: 7,
-        select: { date: true, blocked: true },
-      },
-    },
-  });
+  if (!activeTeam) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+        <p className="text-foreground-muted">
+          Nenhum time encontrado. Crie um time nas{" "}
+          <Link href="/dashboard/settings" className="font-medium text-primary hover:underline">
+            Configurações
+          </Link>{" "}
+          para começar.
+        </p>
+      </div>
+    );
+  }
+
+  // Busca developers e entries do time ativo via API
+  let developers: DeveloperDto[] = [];
+  let entries: EntryDto[] = [];
+
+  try {
+    developers = await apiFetch<DeveloperDto[]>(`/teams/${activeTeam.id}/developers`);
+  } catch {
+    developers = [];
+  }
+
+  try {
+    entries = await apiFetch<EntryDto[]>(`/teams/${activeTeam.id}/entries/recent`);
+  } catch {
+    entries = [];
+  }
+
+  // Agrupa entries por developerId
+  const entriesByDeveloper = new Map<string, EntryDto[]>();
+  for (const entry of entries) {
+    const list = entriesByDeveloper.get(entry.developerId) ?? [];
+    list.push(entry);
+    entriesByDeveloper.set(entry.developerId, list);
+  }
 
   return (
     <div>
@@ -47,16 +98,27 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {developers.map((developer) => (
-            <DeveloperCard
-              key={developer.id}
-              id={developer.id}
-              name={developer.name}
-              role={developer.role}
-              checkedInToday={developer.entries.some((entry) => entry.date.getTime() === today.getTime())}
-              blockedStreak={computeBlockedStreak(developer.entries)}
-            />
-          ))}
+          {developers.map((developer) => {
+            const devEntries = entriesByDeveloper.get(developer.id) ?? [];
+            const checkedInToday = devEntries.some(
+              (entry) => new Date(entry.date).getTime() === today.getTime(),
+            );
+            const recentEntries = devEntries.slice(0, 7).map((e) => ({
+              date: new Date(e.date),
+              blocked: e.blocked,
+            }));
+
+            return (
+              <DeveloperCard
+                key={developer.id}
+                id={developer.id}
+                name={developer.name}
+                role={developer.role}
+                checkedInToday={checkedInToday}
+                blockedStreak={computeBlockedStreak(recentEntries)}
+              />
+            );
+          })}
         </div>
       )}
     </div>

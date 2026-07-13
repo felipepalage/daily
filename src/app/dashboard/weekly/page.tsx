@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { apiFetch } from "@/lib/api";
 import {
   addDays,
   formatShortDate,
@@ -15,6 +15,38 @@ import { DeveloperWeekSummary, type WeekDayEntry } from "@/components/weekly/dev
 import { ExportPdfButton } from "@/components/weekly/export-pdf-button";
 import { ExportCsvButton } from "@/components/weekly/export-csv-button";
 
+type ScrumMasterDto = {
+  id: string;
+  name: string;
+  email: string;
+  questionDoingLabel: string;
+  questionBlockedLabel: string;
+  questionImproveLabel: string;
+  redmineUrl: string | null;
+  redmineApiKey: string | null;
+};
+
+type DeveloperDto = {
+  id: string;
+  name: string;
+  role: string | null;
+};
+
+type EntryDto = {
+  id: string;
+  developerId: string;
+  date: string;
+  doing: string;
+  blocked: string;
+  improve: string;
+  mood: string | null;
+  scrumNote: string | null;
+  featureNumber: string | null;
+  blockerNumber: string | null;
+  epicNumber: string | null;
+  taskNumber: string | null;
+};
+
 export default async function WeeklyPage({
   searchParams,
 }: {
@@ -22,34 +54,60 @@ export default async function WeeklyPage({
 }) {
   const { week } = await searchParams;
   const session = await requireSession();
-  const [{ activeTeam }, scrumMaster] = await Promise.all([
-    getActiveTeam(session.scrumMasterId),
-    prisma.scrumMaster.findUniqueOrThrow({ where: { id: session.scrumMasterId } }),
-  ]);
+  const { activeTeam } = await getActiveTeam();
+
+  let scrumMaster: ScrumMasterDto | null = null;
+  let developers: DeveloperDto[] = [];
+  let entries: EntryDto[] = [];
+
+  try {
+    scrumMaster = await apiFetch<ScrumMasterDto>("/auth/me");
+  } catch {
+    scrumMaster = null;
+  }
 
   const questionLabels = {
-    doing: scrumMaster.questionDoingLabel,
-    blocked: scrumMaster.questionBlockedLabel,
-    improve: scrumMaster.questionImproveLabel,
+    doing: scrumMaster?.questionDoingLabel ?? "O que está sendo feito?",
+    blocked: scrumMaster?.questionBlockedLabel ?? "Tem algum impedimento?",
+    improve: scrumMaster?.questionImproveLabel ?? "O que pode melhorar?",
   };
 
   const monday = week ? getMondayOfWeek(inputValueToDateOnlyUTC(week)) : getMondayOfWeek(new Date());
   const friday = addDays(monday, 4);
   const weekDays = getWeekDays(monday);
 
-  const developers = await prisma.developer.findMany({
-    where: { teamId: activeTeam.id },
-    orderBy: { createdAt: "asc" },
-    include: {
-      entries: {
-        where: { date: { gte: monday, lte: friday } },
-      },
-    },
-  });
+  const mondayStr = monday.toISOString().split("T")[0];
+  const fridayStr = friday.toISOString().split("T")[0];
+
+  if (activeTeam) {
+    try {
+      developers = await apiFetch<DeveloperDto[]>(`/teams/${activeTeam.id}/developers`);
+    } catch {
+      developers = [];
+    }
+
+    try {
+      entries = await apiFetch<EntryDto[]>(
+        `/teams/${activeTeam.id}/entries/range?from=${mondayStr}&to=${fridayStr}`,
+      );
+    } catch {
+      entries = [];
+    }
+  }
+
+  // Agrupa entries por developerId
+  const entriesByDeveloper = new Map<string, EntryDto[]>();
+  for (const entry of entries) {
+    const list = entriesByDeveloper.get(entry.developerId) ?? [];
+    list.push(entry);
+    entriesByDeveloper.set(entry.developerId, list);
+  }
 
   const developerData = developers.map((developer) => {
+    const devEntries = entriesByDeveloper.get(developer.id) ?? [];
+
     const days: WeekDayEntry[] = weekDays.map((day) => {
-      const entry = developer.entries.find((e) => e.date.getTime() === day.getTime());
+      const entry = devEntries.find((e) => new Date(e.date).getTime() === day.getTime());
       return {
         label: formatWeekdayLabel(day),
         shortDate: formatShortDate(day),
@@ -76,7 +134,7 @@ export default async function WeeklyPage({
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Resumo semanal</h1>
           <p className="mt-1 text-sm text-foreground-muted">
-            Consolidado dos check-ins do time &ldquo;{activeTeam.name}&rdquo;.
+            Consolidado dos check-ins do time &ldquo;{activeTeam?.name ?? ""}&rdquo;.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -112,7 +170,7 @@ export default async function WeeklyPage({
               role={developer.role}
               days={developer.days}
               questionLabels={questionLabels}
-              redmineUrl={scrumMaster.redmineUrl}
+              redmineUrl={scrumMaster?.redmineUrl ?? null}
             />
           ))}
         </div>
