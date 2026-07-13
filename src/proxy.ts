@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { decodeJwt } from "jose";
 
-const SESSION_COOKIE = "daily_session";
+const TOKEN_COOKIE = "daily_token";
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
-async function hasValidSession(request: NextRequest) {
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
+// O token é emitido e validado de fato pela API .NET. Aqui no middleware só
+// checamos presença e expiração (decode sem verificar assinatura) para decidir
+// o redirecionamento — a autorização real acontece na API a cada chamada.
+function hasValidSession(request: NextRequest) {
+  const token = request.cookies.get(TOKEN_COOKIE)?.value;
   if (!token) return false;
 
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) return false;
-
   try {
-    await jwtVerify(token, new TextEncoder().encode(secret));
+    const payload = decodeJwt(token);
+    if (payload.exp && payload.exp * 1000 < Date.now()) return false;
     return true;
   } catch {
     return false;
@@ -30,7 +31,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
-  const isAuthenticated = await hasValidSession(request);
+  const isAuthenticated = hasValidSession(request);
 
   if (!isPublicPath && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);

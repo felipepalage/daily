@@ -29,21 +29,24 @@ export async function registerAction(
     return { error: "As senhas não conferem." };
   }
 
+  let token: string;
   try {
     const data = await apiFetch<{ token: string }>("/auth/register", {
       method: "POST",
-      body: { name, email, password },
+      body: { name, email, password, confirmPassword },
       anonymous: true,
     });
-
-    await createSession(data.token);
-    redirect("/dashboard");
+    token = data.token;
   } catch (err) {
     if (err instanceof ApiError) {
       return { error: err.message };
     }
     return { error: "Erro ao criar conta. Tente novamente." };
   }
+
+  // redirect() lança uma exceção especial do Next; por isso fica FORA do try.
+  await createSession(token);
+  redirect("/dashboard");
 }
 
 export async function loginAction(
@@ -57,21 +60,23 @@ export async function loginAction(
     return { error: "Preencha e-mail e senha." };
   }
 
+  let token: string;
   try {
     const data = await apiFetch<{ token: string }>("/auth/login", {
       method: "POST",
       body: { email, password },
       anonymous: true,
     });
-
-    await createSession(data.token);
-    redirect("/dashboard");
+    token = data.token;
   } catch (err) {
     if (err instanceof ApiError) {
       return { error: err.message };
     }
     return { error: "E-mail ou senha inválidos." };
   }
+
+  await createSession(token);
+  redirect("/dashboard");
 }
 
 export async function logoutAction() {
