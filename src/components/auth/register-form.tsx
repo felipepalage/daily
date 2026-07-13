@@ -28,6 +28,16 @@ export function RegisterForm() {
           required
         />
       </div>
+      <div>
+        <Label htmlFor="confirmPassword">Confirmar senha</Label>
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          placeholder="Repita a senha"
+          required
+        />
+      </div>
       {state?.error && (
         <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
       )}

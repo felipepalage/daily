@@ -69,6 +69,10 @@ export default async function DeveloperPage({
             blocked: todayEntry?.blocked ?? "",
             improve: todayEntry?.improve ?? "",
             mood: todayEntry?.mood ?? "",
+            featureNumber: todayEntry?.featureNumber,
+            blockerNumber: todayEntry?.blockerNumber,
+            epicNumber: todayEntry?.epicNumber,
+            taskNumber: todayEntry?.taskNumber,
           }}
         />
       </div>
@@ -79,6 +83,7 @@ export default async function DeveloperPage({
           entries={pastEntries}
           developerId={developer.id}
           questionLabels={questionLabels}
+          redmineUrl={scrumMaster.redmineUrl}
         />
       </section>
     </div>

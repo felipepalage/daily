@@ -6,6 +6,8 @@ import { deleteEntryAction } from "@/lib/actions/entry-actions";
 import { Card } from "@/components/ui/card";
 import { DailyEntryForm, type QuestionLabels } from "@/components/developer/daily-entry-form";
 import { ScrumNote } from "@/components/developer/scrum-note";
+import { IssueLinks } from "@/components/developer/issue-links";
+import type { IssueNumbers } from "@/lib/redmine";
 
 const MOOD_EMOJI: Record<string, string> = {
   otimo: "😄",
@@ -23,16 +25,18 @@ type Entry = {
   improve: string;
   mood: string | null;
   scrumNote: string | null;
-};
+} & IssueNumbers;
 
 function EntryItem({
   entry,
   developerId,
   questionLabels,
+  redmineUrl,
 }: {
   entry: Entry;
   developerId: string;
   questionLabels: QuestionLabels;
+  redmineUrl: string | null;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -49,6 +53,10 @@ function EntryItem({
           blocked: entry.blocked,
           improve: entry.improve,
           mood: entry.mood ?? "",
+          featureNumber: entry.featureNumber,
+          blockerNumber: entry.blockerNumber,
+          epicNumber: entry.epicNumber,
+          taskNumber: entry.taskNumber,
         }}
         onSuccess={() => setEditing(false)}
       />
@@ -98,6 +106,9 @@ function EntryItem({
           </div>
         )}
       </dl>
+      <div className="mt-3">
+        <IssueLinks entry={entry} redmineUrl={redmineUrl} />
+      </div>
       <ScrumNote entryId={entry.id} initialNote={entry.scrumNote ?? ""} />
     </Card>
   );
@@ -107,10 +118,12 @@ export function EntryHistory({
   entries,
   developerId,
   questionLabels,
+  redmineUrl,
 }: {
   entries: Entry[];
   developerId: string;
   questionLabels: QuestionLabels;
+  redmineUrl: string | null;
 }) {
   if (entries.length === 0) {
     return (
@@ -128,6 +141,7 @@ export function EntryHistory({
           entry={entry}
           developerId={developerId}
           questionLabels={questionLabels}
+          redmineUrl={redmineUrl}
         />
       ))}
     </div>

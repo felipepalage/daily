@@ -18,6 +18,10 @@ export async function upsertPublicCheckinAction(
   const blocked = String(formData.get("blocked") ?? "").trim();
   const improve = String(formData.get("improve") ?? "").trim();
   const mood = String(formData.get("mood") ?? "").trim();
+  const featureNumber = String(formData.get("featureNumber") ?? "").trim();
+  const blockerNumber = String(formData.get("blockerNumber") ?? "").trim();
+  const epicNumber = String(formData.get("epicNumber") ?? "").trim();
+  const taskNumber = String(formData.get("taskNumber") ?? "").trim();
 
   if (!token) {
     return { error: "Link inválido." };
@@ -36,10 +40,17 @@ export async function upsertPublicCheckinAction(
   // pelo link público, só edita o check-in do dia atual.
   const date = todayDateOnlyUTC();
 
+  const issueData = {
+    featureNumber: featureNumber || null,
+    blockerNumber: blockerNumber || null,
+    epicNumber: epicNumber || null,
+    taskNumber: taskNumber || null,
+  };
+
   await prisma.dailyEntry.upsert({
     where: { developerId_date: { developerId: developer.id, date } },
-    update: { doing, blocked, improve, mood: mood || null },
-    create: { developerId: developer.id, date, doing, blocked, improve, mood: mood || null },
+    update: { doing, blocked, improve, mood: mood || null, ...issueData },
+    create: { developerId: developer.id, date, doing, blocked, improve, mood: mood || null, ...issueData },
   });
 
   revalidatePath(`/checkin/${token}`);

@@ -5,6 +5,8 @@ import { clsx } from "clsx";
 import { upsertPublicCheckinAction } from "@/lib/actions/public-checkin-actions";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
+import { IssueNumberFields } from "@/components/developer/issue-number-fields";
+import type { IssueNumbers } from "@/lib/redmine";
 
 const MOODS = [
   { value: "otimo", emoji: "😄", label: "Ótimo" },
@@ -21,7 +23,7 @@ export function PublicCheckinForm({
 }: {
   token: string;
   questionLabels: { doing: string; blocked: string; improve: string };
-  defaultValues: { doing: string; blocked: string; improve: string; mood: string };
+  defaultValues: { doing: string; blocked: string; improve: string; mood: string } & IssueNumbers;
 }) {
   const [state, formAction, pending] = useActionState(upsertPublicCheckinAction, null);
   const [mood, setMood] = useState(defaultValues.mood);
@@ -75,6 +77,8 @@ export function PublicCheckinForm({
         <Label htmlFor="improve">{questionLabels.improve}</Label>
         <Textarea id="improve" name="improve" rows={5} defaultValue={defaultValues.improve} />
       </div>
+
+      <IssueNumberFields defaultValues={defaultValues} />
 
       {state?.error && (
         <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>

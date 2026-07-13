@@ -1,5 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { clsx } from "clsx";
+import { IssueLinks } from "@/components/developer/issue-links";
+import type { IssueNumbers } from "@/lib/redmine";
 
 const MOOD_EMOJI: Record<string, string> = {
   otimo: "😄",
@@ -17,16 +19,20 @@ export type WeekDayEntry = {
   blocked: string;
   improve: string;
   mood: string | null;
-};
+} & IssueNumbers;
 
 export function DeveloperWeekSummary({
   name,
   role,
   days,
+  questionLabels,
+  redmineUrl,
 }: {
   name: string;
   role: string | null;
   days: WeekDayEntry[];
+  questionLabels: { doing: string; blocked: string; improve: string };
+  redmineUrl: string | null;
 }) {
   const daysWithEntry = days.filter((day) => day.hasEntry).length;
 
@@ -58,21 +64,22 @@ export function DeveloperWeekSummary({
             {day.hasEntry ? (
               <div className="space-y-1.5 text-sm text-foreground-muted">
                 <p>
-                  <span className="font-medium text-foreground">Fez: </span>
+                  <span className="font-medium text-foreground">{questionLabels.doing} </span>
                   {day.doing}
                 </p>
                 {day.blocked && (
                   <p>
-                    <span className="font-medium text-foreground">Travou: </span>
+                    <span className="font-medium text-foreground">{questionLabels.blocked} </span>
                     {day.blocked}
                   </p>
                 )}
                 {day.improve && (
                   <p>
-                    <span className="font-medium text-foreground">Melhorar: </span>
+                    <span className="font-medium text-foreground">{questionLabels.improve} </span>
                     {day.improve}
                   </p>
                 )}
+                <IssueLinks entry={day} redmineUrl={redmineUrl} />
               </div>
             ) : (
               <p className="text-sm text-foreground-muted/70">Sem check-in registrado</p>

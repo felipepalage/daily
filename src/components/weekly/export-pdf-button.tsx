@@ -25,9 +25,11 @@ const MOOD_LABEL: Record<string, string> = {
 export function ExportPdfButton({
   weekRangeLabel,
   developers,
+  questionLabels,
 }: {
   weekRangeLabel: string;
   developers: DeveloperWeekData[];
+  questionLabels: { doing: string; blocked: string; improve: string };
 }) {
   const [exporting, setExporting] = useState(false);
 
@@ -46,7 +48,7 @@ export function ExportPdfButton({
       }
 
       function writeParagraph(label: string, text: string) {
-        const wrapped = doc.splitTextToSize(`${label}: ${text}`, CONTENT_WIDTH);
+        const wrapped = doc.splitTextToSize(`${label} ${text}`, CONTENT_WIDTH);
         ensureSpace(wrapped.length);
         doc.text(wrapped, MARGIN, y);
         y += wrapped.length * 5 + 2;
@@ -85,9 +87,17 @@ export function ExportPdfButton({
             continue;
           }
 
-          writeParagraph("Fez", day.doing);
-          if (day.blocked) writeParagraph("Travou", day.blocked);
-          if (day.improve) writeParagraph("Melhorar", day.improve);
+          writeParagraph(questionLabels.doing, day.doing);
+          if (day.blocked) writeParagraph(questionLabels.blocked, day.blocked);
+          if (day.improve) writeParagraph(questionLabels.improve, day.improve);
+
+          const issues = [
+            day.featureNumber && `Feature #${day.featureNumber}`,
+            day.blockerNumber && `Blocker #${day.blockerNumber}`,
+            day.epicNumber && `Epic #${day.epicNumber}`,
+            day.taskNumber && `Task #${day.taskNumber}`,
+          ].filter(Boolean);
+          if (issues.length > 0) writeParagraph("Redmine:", issues.join(", "));
           y += 2;
         }
 

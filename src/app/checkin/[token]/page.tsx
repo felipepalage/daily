@@ -45,6 +45,10 @@ export default async function PublicCheckinPage({
           blocked: todayEntry?.blocked ?? "",
           improve: todayEntry?.improve ?? "",
           mood: todayEntry?.mood ?? "",
+          featureNumber: todayEntry?.featureNumber,
+          blockerNumber: todayEntry?.blockerNumber,
+          epicNumber: todayEntry?.epicNumber,
+          taskNumber: todayEntry?.taskNumber,
         }}
       />
     </AuthShell>

@@ -6,6 +6,8 @@ import { upsertDailyEntryAction } from "@/lib/actions/entry-actions";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { IssueNumberFields } from "@/components/developer/issue-number-fields";
+import type { IssueNumbers } from "@/lib/redmine";
 
 const MOODS = [
   { value: "otimo", emoji: "😄", label: "Ótimo" },
@@ -35,7 +37,7 @@ export function DailyEntryForm({
   dateLabel: string;
   title?: string;
   questionLabels: QuestionLabels;
-  defaultValues: { doing: string; blocked: string; improve: string; mood: string };
+  defaultValues: { doing: string; blocked: string; improve: string; mood: string } & IssueNumbers;
   onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(upsertDailyEntryAction, null);
@@ -119,6 +121,8 @@ export function DailyEntryForm({
             placeholder="Ex: Melhorar a comunicação sobre dependências entre tarefas"
           />
         </div>
+
+        <IssueNumberFields defaultValues={defaultValues} />
 
         {state?.error && (
           <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>

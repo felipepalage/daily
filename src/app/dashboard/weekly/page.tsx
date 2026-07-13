@@ -22,7 +22,16 @@ export default async function WeeklyPage({
 }) {
   const { week } = await searchParams;
   const session = await requireSession();
-  const { activeTeam } = await getActiveTeam(session.scrumMasterId);
+  const [{ activeTeam }, scrumMaster] = await Promise.all([
+    getActiveTeam(session.scrumMasterId),
+    prisma.scrumMaster.findUniqueOrThrow({ where: { id: session.scrumMasterId } }),
+  ]);
+
+  const questionLabels = {
+    doing: scrumMaster.questionDoingLabel,
+    blocked: scrumMaster.questionBlockedLabel,
+    improve: scrumMaster.questionImproveLabel,
+  };
 
   const monday = week ? getMondayOfWeek(inputValueToDateOnlyUTC(week)) : getMondayOfWeek(new Date());
   const friday = addDays(monday, 4);
@@ -49,6 +58,10 @@ export default async function WeeklyPage({
         blocked: entry?.blocked ?? "",
         improve: entry?.improve ?? "",
         mood: entry?.mood ?? null,
+        featureNumber: entry?.featureNumber ?? null,
+        blockerNumber: entry?.blockerNumber ?? null,
+        epicNumber: entry?.epicNumber ?? null,
+        taskNumber: entry?.taskNumber ?? null,
       };
     });
 
@@ -67,8 +80,16 @@ export default async function WeeklyPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ExportCsvButton weekRangeLabel={weekRangeLabel} developers={developerData} />
-          <ExportPdfButton weekRangeLabel={weekRangeLabel} developers={developerData} />
+          <ExportCsvButton
+            weekRangeLabel={weekRangeLabel}
+            developers={developerData}
+            questionLabels={questionLabels}
+          />
+          <ExportPdfButton
+            weekRangeLabel={weekRangeLabel}
+            developers={developerData}
+            questionLabels={questionLabels}
+          />
         </div>
       </header>
 
@@ -90,6 +111,8 @@ export default async function WeeklyPage({
               name={developer.name}
               role={developer.role}
               days={developer.days}
+              questionLabels={questionLabels}
+              redmineUrl={scrumMaster.redmineUrl}
             />
           ))}
         </div>

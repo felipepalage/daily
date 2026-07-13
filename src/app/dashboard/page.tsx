@@ -1,9 +1,9 @@
+import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { todayDateOnlyUTC, formatFullDate } from "@/lib/date";
 import { getActiveTeam } from "@/lib/team";
 import { computeBlockedStreak } from "@/lib/blocked-streak";
-import { AddDeveloperForm } from "@/components/dashboard/add-developer-form";
 import { DeveloperCard } from "@/components/dashboard/developer-card";
 
 export default async function DashboardPage() {
@@ -35,15 +35,14 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <div className="mb-6">
-        <AddDeveloperForm teamId={activeTeam.id} />
-      </div>
-
       {developers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="text-foreground-muted">
-            Nenhum desenvolvedor cadastrado ainda. Adicione o primeiro do time para começar
-            os check-ins diários.
+            Nenhum desenvolvedor cadastrado ainda. Adicione o primeiro do time em{" "}
+            <Link href="/dashboard/settings" className="font-medium text-primary hover:underline">
+              Configurações
+            </Link>{" "}
+            para começar os check-ins diários.
           </p>
         </div>
       ) : (

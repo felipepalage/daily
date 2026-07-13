@@ -15,13 +15,18 @@ export async function registerAction(
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !confirmPassword) {
     return { error: "Preencha todos os campos." };
   }
 
   if (password.length < 6) {
     return { error: "A senha precisa ter pelo menos 6 caracteres." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "As senhas não conferem." };
   }
 
   const existing = await prisma.scrumMaster.findUnique({ where: { email } });

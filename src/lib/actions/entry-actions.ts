@@ -22,6 +22,10 @@ export async function upsertDailyEntryAction(
   const blocked = String(formData.get("blocked") ?? "").trim();
   const improve = String(formData.get("improve") ?? "").trim();
   const mood = String(formData.get("mood") ?? "").trim();
+  const featureNumber = String(formData.get("featureNumber") ?? "").trim();
+  const blockerNumber = String(formData.get("blockerNumber") ?? "").trim();
+  const epicNumber = String(formData.get("epicNumber") ?? "").trim();
+  const taskNumber = String(formData.get("taskNumber") ?? "").trim();
 
   if (!developerId || !dateValue || !doing) {
     return { error: "Conte pelo menos o que está sendo feito hoje." };
@@ -36,10 +40,17 @@ export async function upsertDailyEntryAction(
 
   const date = inputValueToDateOnlyUTC(dateValue);
 
+  const issueData = {
+    featureNumber: featureNumber || null,
+    blockerNumber: blockerNumber || null,
+    epicNumber: epicNumber || null,
+    taskNumber: taskNumber || null,
+  };
+
   await prisma.dailyEntry.upsert({
     where: { developerId_date: { developerId, date } },
-    update: { doing, blocked, improve, mood: mood || null },
-    create: { developerId, date, doing, blocked, improve, mood: mood || null },
+    update: { doing, blocked, improve, mood: mood || null, ...issueData },
+    create: { developerId, date, doing, blocked, improve, mood: mood || null, ...issueData },
   });
 
   revalidatePath(`/dashboard/developers/${developerId}`);
