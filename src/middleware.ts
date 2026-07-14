@@ -21,7 +21,7 @@ function hasValidSession(request: NextRequest) {
   }
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Link público de check-in do dev: acessível sem login, e não redireciona

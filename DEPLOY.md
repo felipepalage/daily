@@ -106,6 +106,27 @@ o app não reinicia sozinho se a máquina reiniciar — você teria que rodar
 
 ---
 
+## Deploy no Cloudflare Pages (preview/alternativo)
+
+Este projeto também pode ser publicado no Cloudflare Pages via
+`@cloudflare/next-on-pages`. Esse adaptador está descontinuado pela Cloudflare
+e trava a versão do Next.js em `<=15.5.2` (peer dependency), então o
+`package.json` fixa `next` e `eslint-config-next` em `15.5.2` só por causa
+dessa restrição — não é a versão mais recente do Next.
+
+**Risco conhecido:** o Next `15.5.2` tem vulnerabilidades de segurança já
+corrigidas em versões mais novas (ex.: RCE crítico no React Flight e bypass de
+middleware/App Router — ver `npm audit`), sem patch disponível dentro da faixa
+`<=15.5.2` aceita pelo next-on-pages. Decisão consciente: aceitar esse risco
+por enquanto no ambiente do Cloudflare Pages, mitigado porque a autorização
+real das rotas da API acontece no backend .NET a cada chamada (o middleware do
+Next só decide redirecionamento de UI, não é a única barreira de segurança).
+Se o Cloudflare Pages virar o destino principal/exposto publicamente, vale
+reavaliar migrar para `@opennextjs/cloudflare` (Workers) para poder atualizar
+o Next livremente.
+
+---
+
 ## Observações
 
 - **Banco de dados:** as tabelas do Daily ficam isoladas no schema `daily`

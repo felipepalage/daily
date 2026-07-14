@@ -17,12 +17,14 @@
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "mssql": "^12.7.0",
-    "next": "16.2.10",
+    "next": "15.5.2",
     "nodemailer": "^9.0.3",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "1.13.16",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@emnapi/core": "^1.11.1",
     "@emnapi/runtime": "^1.11.1",
     "@tailwindcss/postcss": "^4",
@@ -33,9 +35,10 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "15.5.2",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "4.107.1"
   }
 }
