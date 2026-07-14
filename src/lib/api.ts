@@ -2,11 +2,10 @@ import { cookies } from "next/headers";
 
 export const TOKEN_COOKIE = "daily_token";
 
-// URL base do backend .NET. DAILY_API_URL é a raiz do servidor (sem /api);
-// os endpoints ficam sob /api. Padrão: dev local.
 export function apiBaseUrl() {
-  const root = (process.env.DAILY_API_URL ?? "http://localhost:5080").replace(/\/+$/, "");
-  return `${root}/api`;
+  const configuredUrl = process.env.DAILY_API_URL ?? process.env.VITE_API_BASE_URL ?? "https://daily-backend.zitec.ai";
+  const root = configuredUrl.replace(/\/+$/, "");
+  return root.endsWith("/api") ? root : `${root}/api`;
 }
 
 export class ApiError extends Error {
@@ -21,13 +20,10 @@ type ApiFetchOptions = {
   method?: string;
   body?: unknown;
   token?: string | null;
-  // Se true, não envia o cookie de token (para chamadas públicas).
   anonymous?: boolean;
   cache?: RequestCache;
 };
 
-// Chama a API .NET. Anexa o token JWT (do cookie) como Bearer, exceto quando
-// anonymous=true. Lança ApiError em respostas não-ok, com a mensagem do backend.
 export async function apiFetch<T = unknown>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { method = "GET", body, anonymous = false, cache = "no-store" } = options;
 
@@ -55,7 +51,7 @@ export async function apiFetch<T = unknown>(path: string, options: ApiFetchOptio
       if (data?.error) message = data.error;
       else if (data?.title) message = data.title;
     } catch {
-      // corpo não-JSON; mantém a mensagem padrão
+      // Keep the status-based fallback for non-JSON responses.
     }
     throw new ApiError(message, res.status);
   }
