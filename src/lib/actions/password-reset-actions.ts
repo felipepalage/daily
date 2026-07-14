@@ -52,10 +52,11 @@ export async function resetPasswordAction(
       body: { token, password },
       anonymous: true,
     });
-
-    redirect("/login?reset=success");
   } catch (err) {
     if (err instanceof ApiError) return { error: err.message };
     return { error: "Link inválido ou expirado. Peça um novo." };
   }
+
+  // redirect() lança exceção especial do Next; fica FORA do try/catch.
+  redirect("/login?reset=success");
 }

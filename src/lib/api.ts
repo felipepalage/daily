@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 
 export const TOKEN_COOKIE = "daily_token";
 
-// URL base do backend .NET. Configurável por env; padrão é o dev local.
+// URL base do backend .NET. DAILY_API_URL é a raiz do servidor (sem /api);
+// os endpoints ficam sob /api. Padrão: dev local.
 export function apiBaseUrl() {
-  return process.env.DAILY_API_URL ?? "http://localhost:5080";
+  const root = (process.env.DAILY_API_URL ?? "http://localhost:5080").replace(/\/+$/, "");
+  return `${root}/api`;
 }
 
 export class ApiError extends Error {
