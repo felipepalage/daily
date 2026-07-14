@@ -8,6 +8,8 @@ import { EntryHistory } from "@/components/developer/entry-history";
 import { CopyCheckinLink } from "@/components/developer/copy-checkin-link";
 import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
+export const runtime = "edge";
+
 type EntryDto = {
   id: string;
   developerId: string;

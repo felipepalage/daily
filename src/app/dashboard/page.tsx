@@ -6,6 +6,8 @@ import { getActiveTeam } from "@/lib/team";
 import { computeBlockedStreak } from "@/lib/blocked-streak";
 import { DeveloperCard } from "@/components/dashboard/developer-card";
 
+export const runtime = "edge";
+
 type DeveloperDto = {
   id: string;
   name: string;

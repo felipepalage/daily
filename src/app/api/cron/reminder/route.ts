@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
-import { todayDateOnlyUTC } from "@/lib/date";
+import { apiFetch, ApiError } from "@/lib/api";
 
-function getBaseUrl(request: NextRequest) {
-  return process.env.APP_URL || new URL(request.url).origin;
-}
+export const runtime = "edge";
 
+// Esta rota só existe para ser chamada por um agendador externo (ex.: cron
+// job) protegido pelo CRON_SECRET. Toda a lógica (consultar quem falta
+// check-in hoje e enviar os e-mails) roda no backend .NET — que tem acesso
+// direto ao banco e a SMTP — porque o Edge Runtime do Cloudflare não suporta
+// socket TCP bruto (nem para SQL Server nem para SMTP).
+//
+// Contrato esperado no lado .NET: POST /api/admin/reminders/send, autenticado
+// com o mesmo CRON_SECRET como Bearer token, retornando
+// { skipped?: string; developerEmailsSent: number; scrumMasterEmailsSent: number }.
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const authHeader = request.headers.get("authorization");
@@ -15,63 +20,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const today = todayDateOnlyUTC();
-  const weekday = today.getUTCDay();
-
-  if (weekday === 0 || weekday === 6) {
-    return NextResponse.json({ ok: true, skipped: "fim de semana" });
-  }
-
-  const baseUrl = getBaseUrl(request);
-
-  const scrumMasters = await prisma.scrumMaster.findMany({
-    include: {
-      teams: {
-        include: {
-          developers: {
-            include: {
-              entries: { where: { date: today }, select: { id: true } },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  let developerEmailsSent = 0;
-  let scrumMasterEmailsSent = 0;
-
-  for (const scrumMaster of scrumMasters) {
-    const missing: string[] = [];
-
-    for (const team of scrumMaster.teams) {
-      for (const developer of team.developers) {
-        if (developer.entries.length > 0) continue;
-
-        missing.push(`${developer.name} (${team.name})`);
-
-        if (developer.email) {
-          await sendEmail({
-            to: developer.email,
-            subject: "Lembrete: check-in de hoje no Daily",
-            text: `Oi, ${developer.name}!\n\nNão esquece de preencher seu check-in de hoje:\n\n${baseUrl}/checkin/${developer.publicToken}`,
-          });
-          developerEmailsSent += 1;
-        }
-      }
-    }
-
-    if (missing.length === 0) continue;
-
-    await sendEmail({
-      to: scrumMaster.email,
-      subject: `Daily — ${missing.length} dev(s) sem check-in hoje`,
-      text: `Oi, ${scrumMaster.name}!\n\nAinda não fizeram o check-in de hoje:\n\n${missing
-        .map((name) => `- ${name}`)
-        .join("\n")}`,
+  try {
+    const result = await apiFetch<{
+      skipped?: string;
+      developerEmailsSent: number;
+      scrumMasterEmailsSent: number;
+    }>("/admin/reminders/send", {
+      method: "POST",
+      anonymous: true,
+      token: secret,
     });
-    scrumMasterEmailsSent += 1;
-  }
 
-  return NextResponse.json({ ok: true, developerEmailsSent, scrumMasterEmailsSent });
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    const status = error instanceof ApiError ? error.status : 502;
+    const message = error instanceof ApiError ? error.message : "failed to trigger reminders";
+    return NextResponse.json({ error: message }, { status });
+  }
 }

@@ -15,6 +15,8 @@ import { DeveloperWeekSummary, type WeekDayEntry } from "@/components/weekly/dev
 import { ExportPdfButton } from "@/components/weekly/export-pdf-button";
 import { ExportCsvButton } from "@/components/weekly/export-csv-button";
 
+export const runtime = "edge";
+
 type ScrumMasterDto = {
   id: string;
   name: string;

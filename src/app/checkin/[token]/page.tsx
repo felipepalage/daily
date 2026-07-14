@@ -4,6 +4,8 @@ import { todayDateOnlyUTC, formatFullDate } from "@/lib/date";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PublicCheckinForm } from "@/components/checkin/public-checkin-form";
 
+export const runtime = "edge";
+
 type DeveloperWithTeamDto = {
   id: string;
   name: string;

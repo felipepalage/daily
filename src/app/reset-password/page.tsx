@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
+export const runtime = "edge";
+
 export default async function ResetPasswordPage({
   searchParams,
 }: {

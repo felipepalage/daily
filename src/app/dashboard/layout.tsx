@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { getActiveTeam } from "@/lib/team";
 import { Sidebar } from "@/components/dashboard/sidebar";
 
+export const runtime = "edge";
+
 export default async function DashboardLayout({
   children,
 }: {

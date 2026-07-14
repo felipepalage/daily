@@ -9,6 +9,8 @@ import { RedmineConfigForm } from "@/components/dashboard/redmine-config-form";
 import { AddDeveloperForm } from "@/components/dashboard/add-developer-form";
 import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
+export const runtime = "edge";
+
 type ScrumMasterDto = {
   id: string;
   name: string;
