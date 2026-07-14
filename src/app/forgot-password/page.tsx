@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
+export const runtime = "edge";
+
 export default function ForgotPasswordPage() {
   return (
     <AuthShell
