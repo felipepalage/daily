@@ -18,17 +18,8 @@ export const getActiveTeam = cache(async () => {
     teams = [];
   }
 
-  // Se não há times, cria um time padrão via API
   if (teams.length === 0) {
-    try {
-      const defaultTeam = await apiFetch<TeamData>("/teams", {
-        method: "POST",
-        body: { name: "Time principal" },
-      });
-      teams = [defaultTeam];
-    } catch {
-      return { teams: [] as TeamData[], activeTeam: null as TeamData | null };
-    }
+    return { teams: [] as TeamData[], activeTeam: null as TeamData | null };
   }
 
   const cookieStore = await cookies();
