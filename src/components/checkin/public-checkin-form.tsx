@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { FormEvent, useState } from "react";
 import { clsx } from "clsx";
-import { upsertPublicCheckinAction } from "@/lib/actions/public-checkin-actions";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { IssueNumberFields } from "@/components/developer/issue-number-fields";
@@ -25,10 +24,48 @@ export function PublicCheckinForm({
   questionLabels: { doing: string; blocked: string; improve: string };
   defaultValues: { doing: string; blocked: string; improve: string; mood: string } & IssueNumbers;
 }) {
-  const [state, formAction, pending] = useActionState(upsertPublicCheckinAction, null);
   const [mood, setMood] = useState(defaultValues.mood);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  if (state?.success) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      const res = await fetch("/api/public/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          mood,
+          doing: formData.get("doing"),
+          blocked: formData.get("blocked"),
+          improve: formData.get("improve"),
+          featureNumber: formData.get("featureNumber"),
+          blockerNumber: formData.get("blockerNumber"),
+          epicNumber: formData.get("epicNumber"),
+          taskNumber: formData.get("taskNumber"),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao salvar check-in.");
+        return;
+      }
+
+      setSuccess(true);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (success) {
     return (
       <div className="rounded-2xl border border-success/30 bg-success/10 p-5 text-center">
         <p className="font-medium text-success">Check-in salvo! Até amanhã. 👋</p>
@@ -37,9 +74,7 @@ export function PublicCheckinForm({
   }
 
   return (
-    <form action={formAction} className="space-y-5">
-      <input type="hidden" name="token" value={token} />
-      <input type="hidden" name="mood" value={mood} />
+    <form onSubmit={handleSubmit} className="space-y-5">
 
       <div>
         <Label>Como está o humor hoje?</Label>
@@ -80,8 +115,8 @@ export function PublicCheckinForm({
 
       <IssueNumberFields defaultValues={defaultValues} />
 
-      {state?.error && (
-        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
+      {error && (
+        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={pending}>
