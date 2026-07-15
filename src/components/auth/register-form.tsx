@@ -1,15 +1,49 @@
 "use client";
 
-import { useActionState } from "react";
-import { registerAction } from "@/lib/actions/auth-actions";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 export function RegisterForm() {
-  const [state, formAction, pending] = useActionState(registerAction, null);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          email: formData.get("email"),
+          password: formData.get("password"),
+          confirmPassword: formData.get("confirmPassword"),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao criar conta. Tente novamente.");
+        return;
+      }
+
+      router.replace("/dashboard");
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="name">Nome</Label>
         <Input id="name" name="name" type="text" placeholder="Seu nome" required />
@@ -38,8 +72,8 @@ export function RegisterForm() {
           required
         />
       </div>
-      {state?.error && (
-        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
+      {error && (
+        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Criando conta..." : "Criar conta"}
