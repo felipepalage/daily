@@ -8,41 +8,42 @@ semanal consolidado, exportável em PDF ou CSV.
 
 ## Stack
 
-- [Next.js 16](https://nextjs.org) (App Router, Server Actions) com TypeScript
+- [Next.js 16](https://nextjs.org) (App Router) com TypeScript — só o front-end
 - [Tailwind CSS 4](https://tailwindcss.com) para o visual
-- [Prisma 7](https://www.prisma.io) + SQLite como banco de dados (arquivo local, sem depender de serviço externo)
-- Autenticação própria (sessão em cookie assinado com [jose](https://github.com/panva/jose) + senha com `bcryptjs`), sem serviços externos
+- Backend próprio em **.NET (`Daily.Api`)** — toda a persistência e regra de
+  negócio ficam nele; este projeto não fala com banco de dados diretamente
+- Autenticação via **JWT emitido pela API**, guardado num cookie httpOnly
 - [jsPDF](https://github.com/parallax/jsPDF) para gerar o resumo semanal em PDF
 - [Nodemailer](https://nodemailer.com) para recuperação de senha e lembretes por e-mail (opcional, via SMTP)
 
-Front-end e back-end vivem no mesmo projeto: as páginas em `src/app` chamam
-Server Actions em `src/lib/actions`, que acessam o banco via Prisma.
+O front-end conversa com o backend .NET via Route Handlers em `src/app/api/*`
+(que repassam para a API usando `apiFetch` em `src/lib/api.ts`). A URL da API vem
+da variável `DAILY_API_URL`.
 
 ## Como rodar
 
 ```bash
 npm install
-npx prisma migrate dev   # cria o banco SQLite local (dev.db) a partir do schema
 npm run dev
 ```
 
+Precisa do backend `Daily.Api` no ar e da variável `DAILY_API_URL` apontando para
+ele (veja `.env.example`).
+
 Acesse [http://localhost:3000](http://localhost:3000). Na primeira vez, crie uma
-conta de scrum master em `/register`. Um "Time principal" é criado automaticamente
-na primeira visita ao dashboard — dá pra criar mais times pelo seletor na sidebar.
+conta de scrum master em `/register` e depois crie um time pelo seletor na sidebar.
 
 ## Estrutura
 
-- `prisma/schema.prisma` — modelos `ScrumMaster`, `Team`, `Developer`,
-  `DailyEntry`, `PasswordResetToken` e `AppSetting` (marca da última semana resetada).
-- `src/proxy.ts` — protege as rotas do dashboard, redirecionando para `/login`
-  quando não há sessão válida (equivalente ao middleware, renomeado no Next 16).
-- `src/lib/auth.ts` — criação/verificação de sessão e hash de senha.
-- `src/lib/team.ts` — resolve o time ativo do scrum master (cria um padrão se não existir).
+- `src/middleware.ts` — protege as rotas do dashboard, redirecionando para
+  `/login` quando não há cookie de sessão (a validação real do token é na API).
+- `src/lib/api.ts` — `apiFetch`, o cliente HTTP que fala com o backend .NET.
+- `src/lib/auth.ts` — sessão a partir do JWT da API (`getSession` chama `/auth/me`).
+- `src/lib/team.ts` — resolve o time ativo do scrum master.
 - `src/lib/email.ts` — envio de e-mail via SMTP, com fallback para log no console em dev.
 - `src/lib/blocked-streak.ts` — calcula há quantos check-ins seguidos um dev está travado.
-- `src/lib/actions/` — Server Actions de autenticação, times, desenvolvedores, check-ins,
-  configurações e recuperação de senha.
-- `src/lib/weekly-reset.ts` — apaga os check-ins da semana anterior automaticamente.
+- `src/app/api/` — Route Handlers que repassam as chamadas para o backend .NET
+  (autenticação, times, desenvolvedores, check-ins, configurações, recuperação de senha).
 - `src/app/dashboard` — visão geral do time, página de cada desenvolvedor
   (check-in diário + histórico editável), configurações e o resumo semanal.
 - `src/app/checkin/[token]` — página pública (sem login) onde o próprio dev
@@ -77,16 +78,12 @@ na primeira visita ao dashboard — dá pra criar mais times pelo seletor na sid
 
 ## Reset semanal automático
 
-O time e os logins nunca são apagados — só o histórico de check-ins
-(`DailyEntry`). Toda vez que alguém abre o dashboard, o app compara a semana
-atual com a última semana registrada em `AppSetting`; se mudou (nova
-segunda-feira), apaga todos os check-ins antigos antes de mostrar a tela.
+O time e os logins nunca são apagados — só o histórico de check-ins. A regra do
+reset semanal vive no backend .NET: ao abrir o dashboard, se virou a semana (nova
+segunda-feira), a API apaga os check-ins antigos antes de devolver os dados.
 
 Não depende de nenhum cron externo nem de o DevOps agendar nada — o reset
-acontece sozinho no primeiro acesso após virar a semana. A única coisa que
-precisa sobreviver é o arquivo do SQLite entre um acesso e outro (por isso o
-aviso de disco persistente na seção de deploy abaixo); reinícios do servidor
-no meio da semana não apagam nada, só a virada de segunda-feira apaga.
+acontece sozinho no primeiro acesso após virar a semana.
 
 ## Lembrete diário por e-mail (opcional)
 
@@ -109,34 +106,29 @@ recebe o resumo de quem falta).
 
 Variáveis de ambiente necessárias (veja `.env.example` para a lista completa):
 
-- `DATABASE_URL` — caminho do arquivo SQLite. **Importante:** aponte para um
-  disco/volume persistente. Se o deploy for em container ou serverless sem
-  volume persistente, o banco é perdido a cada novo deploy/restart — nesse
-  caso, avise para trocarmos o Prisma para um banco hospedado (ex: Turso,
-  Postgres) antes de ir para produção.
-- `AUTH_SECRET` — gere um valor novo e secreto só para produção (não reutilize
-  o do `.env` de desenvolvimento). Comando sugerido:
-  `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- `DAILY_API_URL` — URL do backend .NET (`Daily.Api`). **Obrigatória** — é onde
+  ficam os dados e a autenticação. Sem isso o app não loga nem carrega nada.
+- `APP_URL` — URL pública do app. Usada nos links de e-mail; quando começa com
+  `https://`, ativa o cookie de sessão seguro automaticamente.
 - `SMTP_*` / `EMAIL_FROM` — opcionais, mas necessários para "esqueci minha
   senha" e o lembrete diário realmente enviarem e-mail (sem isso, só logam no console).
 - `CRON_SECRET` — necessário só se for usar o lembrete diário por e-mail.
 
-Comandos de build e start (Node 20+):
+Comandos de build e start (Node 22+):
 
 ```bash
 npm install
-npx prisma migrate deploy   # aplica as migrations no banco de produção
 npm run build
 npm run start                # sobe em produção na porta 3000 (ou $PORT)
 ```
 
-O app é 100% Node.js — não depende de nenhum serviço externo obrigatório além
-do próprio arquivo do banco, então roda bem atrás de um Nginx/reverse proxy comum.
+O deploy recomendado é via Docker (veja `DEPLOY.md`). O app roda bem atrás de um
+Nginx/reverse proxy comum, desde que o backend `Daily.Api` esteja acessível.
 
 ## Fluxo de uso
 
-1. O scrum master cria uma conta; um time principal é criado automaticamente
-   (dá pra adicionar mais times pelo seletor na sidebar).
+1. O scrum master cria uma conta e adiciona um time pelo seletor na sidebar
+   (dá pra ter vários times).
 2. Adiciona os desenvolvedores do time (com e-mail, se quiser lembrete automático).
 3. Copia o link individual de cada dev (na página dele) e envia por WhatsApp,
    Slack, e-mail etc. Cada dev acessa o próprio link todo dia e preenche as

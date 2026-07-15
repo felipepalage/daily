@@ -30,21 +30,17 @@ cp .env.example .env
 Abra o `.env` e ajuste:
 
 ```env
-# Conexão com o banco (peça os dados reais para quem administra o banco).
-# HOST, USUARIO e SENHA são os mesmos que já usamos no ambiente atual.
-DATABASE_URL="sqlserver://HOST:1433;database=NOME_DO_BANCO;user=USUARIO;password=SENHA;encrypt=true;trustServerCertificate=true"
+# URL do backend .NET (Daily.Api). Aponte para o servidor real da API.
+# O Daily não fala com banco de dados direto — toda persistência é via essa API.
+DAILY_API_URL="https://daily-backend.zitec.ai"
 
-# Chave de sessão — gere UMA vez e não mude mais (senão desloga todo mundo).
-# Gere com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-AUTH_SECRET="cole-uma-chave-aleatoria-aqui"
-
-# URL pública do app na rede (troque pelo IP da máquina que hospeda).
-# Usada nos links de e-mail (check-in e recuperação de senha).
+# URL pública do app na rede (troque pelo IP/domínio da máquina que hospeda).
+# Usada nos links de e-mail (check-in e recuperação de senha) e, quando começa
+# com https://, ativa o cookie de sessão seguro automaticamente.
 APP_URL="http://IP-DO-SERVIDOR:3000"
 ```
 
-> ⚠️ O `.env` guarda a senha do banco, por isso **não vai para o GitHub**.
-> Ele fica só nesta máquina.
+> ⚠️ O `.env` fica só nesta máquina e **não vai para o GitHub**.
 
 ### 3. Subir o app
 
@@ -129,9 +125,9 @@ o Next livremente.
 
 ## Observações
 
-- **Banco de dados:** as tabelas do Daily ficam isoladas no schema `daily`
-  do banco e já foram criadas. Não é preciso rodar nada de migração para
-  subir. Só se o schema mudar no futuro é que rodamos as migrations de novo.
+- **Backend:** o Daily é só o front-end (Next.js). Toda a persistência e a
+  autenticação ficam no backend .NET (`Daily.Api`), acessado via `DAILY_API_URL`.
+  Não há banco de dados nem migração para rodar aqui — basta a API estar no ar.
 - **Sem HTTPS:** na rede interna funciona por HTTP normalmente. Se um dia
   colocar um domínio com HTTPS, mude o `APP_URL` para começar com
   `https://` — isso ativa o cookie de sessão seguro automaticamente.

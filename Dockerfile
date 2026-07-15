@@ -2,10 +2,8 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Instala as dependências (o postinstall roda "prisma generate")
+# Instala as dependências
 COPY package.json package-lock.json ./
-COPY prisma ./prisma
-COPY prisma.config.ts ./
 RUN npm ci
 
 # Copia o restante do código e gera o build de produção (standalone)

@@ -12,7 +12,8 @@ export default async function DashboardLayout({
 }) {
   const session = await getSession();
   if (!session) {
-    redirect("/login");
+    // Limpa o cookie antes de voltar ao /login (evita loop com o middleware).
+    redirect("/api/auth/logout");
   }
 
   const { teams, activeTeam } = await getActiveTeam();
