@@ -6,11 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
+type Credential = { email: string | null; temporaryPassword: string | null };
+
 export function AddDeveloperForm({ teamId }: { teamId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [credential, setCredential] = useState<Credential | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,11 +37,65 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
         setError(data?.error ?? "Erro ao criar desenvolvedor.");
         return;
       }
-      setOpen(false);
+      const data = (await res.json().catch(() => null)) as Credential | null;
       router.refresh();
+      if (data?.temporaryPassword) {
+        setCredential({ email: data.email, temporaryPassword: data.temporaryPassword });
+        setCopied(false);
+      } else {
+        setOpen(false);
+      }
     } finally {
       setPending(false);
     }
+  }
+
+  async function copyCredential() {
+    if (!credential?.temporaryPassword) return;
+    const text = `E-mail: ${credential.email ?? ""}\nSenha temporária: ${credential.temporaryPassword}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Painel com a senha temporária recém-criada.
+  if (credential) {
+    return (
+      <Card className="w-full max-w-md p-5">
+        <p className="text-sm font-medium text-foreground">Desenvolvedor criado! 🎉</p>
+        <p className="mt-1 text-sm text-foreground-muted">
+          Repasse estes dados para o dev acessar. A senha só aparece agora.
+        </p>
+        <div className="mt-4 space-y-1 rounded-lg bg-surface-muted p-3 text-sm">
+          <p>
+            <span className="text-foreground-muted">E-mail:</span>{" "}
+            <span className="font-medium text-foreground">{credential.email}</span>
+          </p>
+          <p>
+            <span className="text-foreground-muted">Senha temporária:</span>{" "}
+            <span className="font-mono font-medium text-foreground">{credential.temporaryPassword}</span>
+          </p>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button type="button" onClick={copyCredential}>
+            {copied ? "Copiado!" : "Copiar"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setCredential(null);
+              setOpen(false);
+            }}
+          >
+            Fechar
+          </Button>
+        </div>
+      </Card>
+    );
   }
 
   if (!open) {
@@ -60,12 +118,12 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
           <Input id="role" name="role" placeholder="Ex: Backend, Frontend, QA" />
         </div>
         <div>
-          <Label htmlFor="email">E-mail do dev (opcional)</Label>
+          <Label htmlFor="email">E-mail do dev</Label>
           <Input
             id="email"
             name="email"
             type="email"
-            placeholder="Para receber o link e lembretes por e-mail"
+            placeholder="Necessário para o dev logar e preencher o próprio check-in"
           />
         </div>
         {error && (

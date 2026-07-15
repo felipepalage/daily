@@ -2,10 +2,16 @@ import { cookies } from "next/headers";
 import { apiFetch, TOKEN_COOKIE } from "@/lib/api";
 import { isSecureCookieContext } from "@/lib/cookie-options";
 
+export type SessionRole = "scrumMaster" | "developer";
+
 export type SessionPayload = {
-  scrumMasterId: string;
+  id: string;
   name: string;
   email: string;
+  role: SessionRole;
+  teamId?: string;
+  // Compat: alguns trechos antigos usam scrumMasterId.
+  scrumMasterId: string;
 };
 
 // --- hash/verify delegam para a API (bcrypt fica no backend) ---
@@ -47,13 +53,25 @@ export async function getSession(): Promise<SessionPayload | null> {
   if (!token) return null;
 
   // Verifica o token contra a API (endpoint /auth/me), que devolve os dados
-  // do scrum master se o token for válido.
+  // do usuário (scrum master ou developer) se o token for válido.
   try {
-    const me = await apiFetch<SessionPayload>("/auth/me", {
+    const me = await apiFetch<Partial<SessionPayload> & { scrumMasterId?: string }>("/auth/me", {
       token,
       cache: "no-store",
     });
-    return me;
+
+    // Normaliza resposta antiga (só scrumMasterId) e nova (id + role + teamId).
+    const id = me.id ?? me.scrumMasterId ?? "";
+    const role: SessionRole = me.role ?? "scrumMaster";
+
+    return {
+      id,
+      scrumMasterId: me.scrumMasterId ?? id,
+      name: me.name ?? "",
+      email: me.email ?? "",
+      role,
+      teamId: me.teamId,
+    };
   } catch {
     return null;
   }

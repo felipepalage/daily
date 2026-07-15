@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await apiFetch("/developers", {
+    const created = await apiFetch<{ id?: string; temporaryPassword?: string | null }>("/developers", {
       method: "POST",
       body: {
         name: normalizedName,
@@ -31,7 +31,11 @@ export async function POST(request: Request) {
         teamId: normalizedTeamId,
       },
     });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      email: normalizedEmail || null,
+      temporaryPassword: created?.temporaryPassword ?? null,
+    });
   } catch (err) {
     if (err instanceof ApiError) return NextResponse.json({ error: err.message }, { status: err.status });
     return NextResponse.json({ error: "Erro ao criar desenvolvedor." }, { status: 500 });

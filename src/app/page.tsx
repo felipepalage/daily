@@ -5,5 +5,6 @@ export const runtime = "edge";
 
 export default async function Home() {
   const session = await getSession();
-  redirect(session ? "/dashboard" : "/login");
+  if (!session) redirect("/login");
+  redirect(session.role === "developer" ? "/meu-checkin" : "/dashboard");
 }

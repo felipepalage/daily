@@ -4,7 +4,11 @@ import { FormEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({
+  endpoint = "/api/settings/password",
+}: {
+  endpoint?: string;
+} = {}) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +21,7 @@ export function ChangePasswordForm() {
     setPending(true);
     const formData = new FormData(event.currentTarget);
     try {
-      const res = await fetch("/api/settings/password", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
