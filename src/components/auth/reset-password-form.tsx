@@ -1,16 +1,39 @@
 "use client";
 
-import { useActionState } from "react";
-import { resetPasswordAction } from "@/lib/actions/password-reset-actions";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 export function ResetPasswordForm({ token }: { token: string }) {
-  const [state, formAction, pending] = useActionState(resetPasswordAction, null);
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    const password = String(new FormData(event.currentTarget).get("password") ?? "");
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Link inválido ou expirado. Peça um novo.");
+        return;
+      }
+      router.replace("/login?reset=success");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
-      <input type="hidden" name="token" value={token} />
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="password">Nova senha</Label>
         <Input
@@ -21,8 +44,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
           required
         />
       </div>
-      {state?.error && (
-        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
+      {error && (
+        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Salvando..." : "Redefinir senha"}

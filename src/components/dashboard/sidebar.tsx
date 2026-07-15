@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { logoutAction } from "@/lib/actions/auth-actions";
 import { TeamSwitcher } from "@/components/dashboard/team-switcher";
 
 const NAV_ITEMS = [
@@ -27,6 +26,13 @@ export function Sidebar({
   activeTeamId: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border bg-surface px-4 py-6">
@@ -66,14 +72,13 @@ export function Sidebar({
           <p className="truncate text-sm font-medium text-foreground">{name}</p>
           <p className="truncate text-xs text-foreground-muted">{email}</p>
         </div>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-foreground-muted transition-colors hover:bg-surface-muted hover:text-accent cursor-pointer"
-          >
-            Sair
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-foreground-muted transition-colors hover:bg-surface-muted hover:text-accent cursor-pointer"
+        >
+          Sair
+        </button>
       </div>
     </aside>
   );

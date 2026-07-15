@@ -1,21 +1,38 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { updateScrumNoteAction } from "@/lib/actions/entry-actions";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 
 export function ScrumNote({ entryId, initialNote }: { entryId: string; initialNote: string }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const [state, formAction, pending] = useActionState(updateScrumNoteAction, null);
-  const wasPending = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (wasPending.current && !pending && !state?.error) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    const scrumNote = String(new FormData(event.currentTarget).get("scrumNote") ?? "");
+    try {
+      const res = await fetch("/api/entries/scrum-note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId, scrumNote }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao salvar nota do scrum.");
+        return;
+      }
       setEditing(false);
+      router.refresh();
+    } finally {
+      setPending(false);
     }
-    wasPending.current = pending;
-  }, [pending, state]);
+  }
 
   if (!editing) {
     return initialNote ? (
@@ -42,8 +59,7 @@ export function ScrumNote({ entryId, initialNote }: { entryId: string; initialNo
   }
 
   return (
-    <form action={formAction} className="mt-3 space-y-2">
-      <input type="hidden" name="entryId" value={entryId} />
+    <form onSubmit={handleSubmit} className="mt-3 space-y-2">
       <Textarea
         name="scrumNote"
         rows={2}
@@ -51,7 +67,7 @@ export function ScrumNote({ entryId, initialNote }: { entryId: string; initialNo
         placeholder="Ex: Combinei de destravar o acesso até amanhã"
         autoFocus
       />
-      {state?.error && <p className="text-xs text-accent">{state.error}</p>}
+      {error && <p className="text-xs text-accent">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" disabled={pending} className="px-3 py-1.5 text-xs">
           {pending ? "Salvando..." : "Salvar nota"}

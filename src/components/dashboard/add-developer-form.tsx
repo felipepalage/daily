@@ -1,24 +1,44 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { createDeveloperAction } from "@/lib/actions/developer-actions";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 export function AddDeveloperForm({ teamId }: { teamId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createDeveloperAction, null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const wasPending = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (wasPending.current && !pending && !state?.error) {
-      formRef.current?.reset();
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    const formData = new FormData(event.currentTarget);
+    try {
+      const res = await fetch("/api/developers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId,
+          name: formData.get("name"),
+          role: formData.get("role"),
+          email: formData.get("email"),
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao criar desenvolvedor.");
+        return;
+      }
       setOpen(false);
+      router.refresh();
+    } finally {
+      setPending(false);
     }
-    wasPending.current = pending;
-  }, [pending, state]);
+  }
 
   if (!open) {
     return (
@@ -30,8 +50,7 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
 
   return (
     <Card className="w-full max-w-md p-5">
-      <form ref={formRef} action={formAction} className="space-y-4">
-        <input type="hidden" name="teamId" value={teamId} />
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="name">Nome</Label>
           <Input id="name" name="name" placeholder="Ex: Ana Souza" required autoFocus />
@@ -49,8 +68,8 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
             placeholder="Para receber o link e lembretes por e-mail"
           />
         </div>
-        {state?.error && (
-          <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
+        {error && (
+          <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
         )}
         <div className="flex gap-2">
           <Button type="submit" disabled={pending}>

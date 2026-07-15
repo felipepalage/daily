@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { updateRedmineConfigAction } from "@/lib/actions/settings-actions";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
@@ -10,10 +10,40 @@ export function RedmineConfigForm({
 }: {
   initial: { redmineUrl: string; redmineApiKey: string };
 }) {
-  const [state, formAction, pending] = useActionState(updateRedmineConfigAction, null);
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSuccess(false);
+    setPending(true);
+    const formData = new FormData(event.currentTarget);
+    try {
+      const res = await fetch("/api/settings/redmine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          redmineUrl: formData.get("redmineUrl"),
+          redmineApiKey: formData.get("redmineApiKey"),
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao salvar configuração do Redmine.");
+        return;
+      }
+      setSuccess(true);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="redmineUrl">URL do Redmine</Label>
         <Input
@@ -37,14 +67,14 @@ export function RedmineConfigForm({
           defaultValue={initial.redmineApiKey}
         />
       </div>
-      {state?.error && (
-        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
+      {error && (
+        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
       )}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           {pending ? "Salvando..." : "Salvar integração"}
         </Button>
-        {state?.success && <span className="text-sm text-success">Salvo!</span>}
+        {success && <span className="text-sm text-success">Salvo!</span>}
       </div>
     </form>
   );

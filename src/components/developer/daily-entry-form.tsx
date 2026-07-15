@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { upsertDailyEntryAction } from "@/lib/actions/entry-actions";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -40,19 +40,47 @@ export function DailyEntryForm({
   defaultValues: { doing: string; blocked: string; improve: string; mood: string } & IssueNumbers;
   onSuccess?: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(upsertDailyEntryAction, null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const router = useRouter();
   const [mood, setMood] = useState(defaultValues.mood);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (state?.success) {
-      setSavedAt(Date.now());
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    const formData = new FormData(event.currentTarget);
+    try {
+      const res = await fetch("/api/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          developerId,
+          date: dateValue,
+          mood,
+          doing: formData.get("doing"),
+          blocked: formData.get("blocked"),
+          improve: formData.get("improve"),
+          featureNumber: formData.get("featureNumber"),
+          blockerNumber: formData.get("blockerNumber"),
+          epicNumber: formData.get("epicNumber"),
+          taskNumber: formData.get("taskNumber"),
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao salvar check-in.");
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
       onSuccess?.();
-      const timeout = setTimeout(() => setSavedAt(null), 3000);
-      return () => clearTimeout(timeout);
+      router.refresh();
+    } finally {
+      setPending(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }
 
   return (
     <Card className="p-6">
@@ -61,11 +89,7 @@ export function DailyEntryForm({
         <span className="text-sm text-foreground-muted">{dateLabel}</span>
       </div>
 
-      <form action={formAction} className="space-y-5">
-        <input type="hidden" name="developerId" value={developerId} />
-        <input type="hidden" name="date" value={dateValue} />
-        <input type="hidden" name="mood" value={mood} />
-
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <Label>Como está o humor hoje?</Label>
           <div className="flex gap-2">
@@ -124,15 +148,15 @@ export function DailyEntryForm({
 
         <IssueNumberFields defaultValues={defaultValues} />
 
-        {state?.error && (
-          <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{state.error}</p>
+        {error && (
+          <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
         )}
 
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={pending}>
             {pending ? "Salvando..." : "Salvar check-in"}
           </Button>
-          {savedAt && <span className="text-sm text-success">Check-in salvo!</span>}
+          {saved && <span className="text-sm text-success">Check-in salvo!</span>}
         </div>
       </form>
     </Card>

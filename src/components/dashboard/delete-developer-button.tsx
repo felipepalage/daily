@@ -1,8 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import type { MouseEvent } from "react";
-import { deleteDeveloperAction } from "@/lib/actions/developer-actions";
+import { useRouter } from "next/navigation";
 
 export function DeleteDeveloperButton({
   id,
@@ -13,22 +12,27 @@ export function DeleteDeveloperButton({
   name: string;
   variant?: "icon" | "text";
 }) {
-  function handleClick(e: MouseEvent<HTMLButtonElement>) {
+  const router = useRouter();
+
+  async function handleClick() {
     const confirmed = window.confirm(
       `Remover "${name}"? Isso apaga também todo o histórico de check-ins dele. Não dá pra desfazer.`,
     );
-    if (!confirmed) {
-      e.preventDefault();
-    }
+    if (!confirmed) return;
+
+    await fetch("/api/developers/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ developerId: id }),
+    });
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
-    <form
-      action={deleteDeveloperAction.bind(null, id)}
-      className={variant === "icon" ? "absolute right-3 top-3" : undefined}
-    >
+    <div className={variant === "icon" ? "absolute right-3 top-3" : undefined}>
       <button
-        type="submit"
+        type="button"
         onClick={handleClick}
         aria-label="Remover desenvolvedor"
         className={clsx(
@@ -40,6 +44,6 @@ export function DeleteDeveloperButton({
       >
         {variant === "icon" ? "✕" : "Remover desenvolvedor"}
       </button>
-    </form>
+    </div>
   );
 }

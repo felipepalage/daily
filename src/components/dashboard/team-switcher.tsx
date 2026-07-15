@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type MouseEvent } from "react";
-import { createTeamAction, deleteTeamAction, switchTeamAction } from "@/lib/actions/team-actions";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,48 +14,73 @@ export function TeamSwitcher({
   teams: Team[];
   activeTeamId: string;
 }) {
+  const router = useRouter();
   const [creating, setCreating] = useState(false);
-  const [state, formAction, pending] = useActionState(createTeamAction, null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const wasPending = useRef(false);
-
-  useEffect(() => {
-    if (wasPending.current && !pending && !state?.error) {
-      formRef.current?.reset();
-      setCreating(false);
-    }
-    wasPending.current = pending;
-  }, [pending, state]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const activeTeam = teams.find((team) => team.id === activeTeamId);
 
-  function handleDeleteTeam(e: MouseEvent<HTMLButtonElement>) {
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    const name = String(new FormData(event.currentTarget).get("name") ?? "");
+    try {
+      const res = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error ?? "Erro ao criar time.");
+        return;
+      }
+      setCreating(false);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleSwitch(teamId: string) {
+    await fetch("/api/teams/switch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId }),
+    });
+    router.refresh();
+  }
+
+  async function handleDeleteTeam() {
     const confirmed = window.confirm(
       `Excluir o time "${activeTeam?.name}"? Isso apaga também todos os desenvolvedores e o histórico de check-ins desse time. Não dá pra desfazer.`,
     );
-    if (!confirmed) {
-      e.preventDefault();
-    }
+    if (!confirmed) return;
+    await fetch("/api/teams/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId: activeTeamId }),
+    });
+    router.refresh();
   }
 
   return (
     <div className="mb-4 px-2">
       {teams.length > 1 && (
-        <form action={switchTeamAction}>
-          <select
-            key={activeTeamId}
-            name="teamId"
-            defaultValue={activeTeamId}
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            className="mb-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
-          >
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </form>
+        <select
+          key={activeTeamId}
+          defaultValue={activeTeamId}
+          onChange={(e) => handleSwitch(e.currentTarget.value)}
+          className="mb-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          {teams.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
+        </select>
       )}
 
       {!creating ? (
@@ -67,18 +92,16 @@ export function TeamSwitcher({
           >
             + Novo time
           </button>
-          <form action={deleteTeamAction.bind(null, activeTeamId)}>
-            <button
-              type="submit"
-              onClick={handleDeleteTeam}
-              className="text-xs font-medium text-foreground-muted hover:text-accent cursor-pointer"
-            >
-              Excluir time atual
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleDeleteTeam}
+            className="text-xs font-medium text-foreground-muted hover:text-accent cursor-pointer"
+          >
+            Excluir time atual
+          </button>
         </div>
       ) : (
-        <form ref={formRef} action={formAction} className="space-y-2">
+        <form onSubmit={handleCreate} className="space-y-2">
           <Input
             name="name"
             placeholder="Nome do time"
@@ -86,7 +109,7 @@ export function TeamSwitcher({
             required
             className="text-sm"
           />
-          {state?.error && <p className="text-xs text-accent">{state.error}</p>}
+          {error && <p className="text-xs text-accent">{error}</p>}
           <div className="flex gap-1.5">
             <Button type="submit" disabled={pending} className="px-2.5 py-1 text-xs">
               {pending ? "Criando..." : "Criar"}

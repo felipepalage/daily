@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatFullDate, dateToInputValue } from "@/lib/date";
-import { deleteEntryAction } from "@/lib/actions/entry-actions";
 import { Card } from "@/components/ui/card";
 import { DailyEntryForm, type QuestionLabels } from "@/components/developer/daily-entry-form";
 import { ScrumNote } from "@/components/developer/scrum-note";
@@ -39,6 +39,16 @@ function EntryItem({
   redmineUrl: string | null;
 }) {
   const [editing, setEditing] = useState(false);
+  const router = useRouter();
+
+  async function handleDelete() {
+    await fetch("/api/entries/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entryId: entry.id }),
+    });
+    router.refresh();
+  }
 
   if (editing) {
     return (
@@ -78,14 +88,13 @@ function EntryItem({
           >
             Editar
           </button>
-          <form action={deleteEntryAction.bind(null, entry.id)}>
-            <button
-              type="submit"
-              className="text-xs font-medium text-foreground-muted hover:text-accent cursor-pointer"
-            >
-              Excluir
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="text-xs font-medium text-foreground-muted hover:text-accent cursor-pointer"
+          >
+            Excluir
+          </button>
         </div>
       </div>
       <dl className="space-y-2.5 text-sm">
