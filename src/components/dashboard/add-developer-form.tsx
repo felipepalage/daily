@@ -30,6 +30,7 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
           name: formData.get("name"),
           role: formData.get("role"),
           email: formData.get("email"),
+          redmineUserId: formData.get("redmineUserId"),
         }),
       });
       if (!res.ok) {
@@ -125,6 +126,13 @@ export function AddDeveloperForm({ teamId }: { teamId: string }) {
             type="email"
             placeholder="Necessário para o dev logar e preencher o próprio check-in"
           />
+        </div>
+        <div>
+          <Label htmlFor="redmineUserId">ID do usuário no Redmine (opcional)</Label>
+          <Input id="redmineUserId" name="redmineUserId" placeholder="Ex: 42" />
+          <p className="mt-1 text-xs text-foreground-muted">
+            Veja na URL do perfil dele no Redmine, ex: .../users/42. Usado pra mostrar as issues abertas dele e avisar por e-mail quando uma nova for atribuída.
+          </p>
         </div>
         {error && (
           <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">{error}</p>
