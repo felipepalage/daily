@@ -93,34 +93,9 @@ avisar que ninguém abriu o app). Configure um cron/scheduler do seu provedor
 para chamar, todo dia (o endpoint já ignora sábado/domingo sozinho):
 
 ```bash
-curl -X POST https://daily.zitec.ai/api/cron/reminder \
+curl -X POST https://seu-dominio.com/api/cron/reminder \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
-
-O horário é configurado por time em Configurações → "Lembrete diário" (o
-gestor escolhe no fuso local dele; é convertido e guardado em UTC).
-
-## Integração com Redmine
-
-Além do link manual (número da issue → URL), dá pra:
-
-- **Ver as issues abertas de um dev** — se ele tiver um "ID do usuário no
-  Redmine" cadastrado (Configurações → desenvolvedor → Editar), a página dele
-  mostra um widget com as issues abertas atribuídas a ele, buscadas ao vivo no
-  Redmine (usa a URL/chave de API já configurada em Configurações →
-  Integração Redmine).
-- **Avisar por e-mail quando uma issue nova é atribuída** — precisa de um
-  segundo gatilho externo, igual ao lembrete diário:
-
-```bash
-curl -X POST https://daily.zitec.ai/api/cron/redmine-sync \
-  -H "Authorization: Bearer $CRON_SECRET"
-```
-
-Este repo já traz um agendador pronto em
-`.github/workflows/reminders.yml` (GitHub Actions, roda a cada 15min) —
-só falta configurar os secrets do repositório `APP_URL` (URL pública do
-app) e `CRON_SECRET` (mesmo valor do `.env`/`Cron:Secret` do backend).
 
 Sem `CRON_SECRET` configurado nas variáveis de ambiente, o endpoint sempre
 responde 401. Sem SMTP configurado, os e-mails são só impressos no log. Sem

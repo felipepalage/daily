@@ -11,12 +11,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dados invalidos." }, { status: 400 });
   }
 
-  const { name, role, email, teamId, redmineUserId } = (body ?? {}) as Record<string, unknown>;
+  const { name, role, email, teamId } = (body ?? {}) as Record<string, unknown>;
   const normalizedName = String(name ?? "").trim();
   const normalizedRole = String(role ?? "").trim();
   const normalizedEmail = String(email ?? "").trim().toLowerCase();
   const normalizedTeamId = String(teamId ?? "");
-  const normalizedRedmineUserId = String(redmineUserId ?? "").trim();
 
   if (!normalizedName) {
     return NextResponse.json({ error: "Informe o nome do desenvolvedor." }, { status: 400 });
@@ -30,7 +29,6 @@ export async function POST(request: Request) {
         role: normalizedRole || null,
         email: normalizedEmail || null,
         teamId: normalizedTeamId,
-        redmineUserId: normalizedRedmineUserId || null,
       },
     });
     return NextResponse.json({

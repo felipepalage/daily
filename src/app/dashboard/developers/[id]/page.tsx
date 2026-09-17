@@ -6,7 +6,6 @@ import { todayDateOnlyUTC, dateToInputValue, formatFullDate } from "@/lib/date";
 import { DailyEntryForm } from "@/components/developer/daily-entry-form";
 import { EntryHistory } from "@/components/developer/entry-history";
 import { CopyCheckinLink } from "@/components/developer/copy-checkin-link";
-import { RedmineIssuesWidget, type RedmineIssue } from "@/components/developer/redmine-issues-widget";
 import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
 export const runtime = "edge";
@@ -59,18 +58,11 @@ export default async function DeveloperPage({
   let developer: DeveloperDto | null = null;
   let scrumMaster: ScrumMasterDto | null = null;
   let entries: EntryDto[] = [];
-  let redmineIssues: RedmineIssue[] = [];
 
   try {
     developer = await apiFetch<DeveloperDto>(`/developers/${id}`);
   } catch {
     notFound();
-  }
-
-  try {
-    redmineIssues = await apiFetch<RedmineIssue[]>(`/developers/${id}/redmine-issues`);
-  } catch {
-    redmineIssues = [];
   }
 
   try {
@@ -113,8 +105,6 @@ export default async function DeveloperPage({
       <div className="mb-8">
         <CopyCheckinLink token={developer.publicToken ?? ""} />
       </div>
-
-      <RedmineIssuesWidget issues={redmineIssues} />
 
       <div className="mb-10">
         <DailyEntryForm
