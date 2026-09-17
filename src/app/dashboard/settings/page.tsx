@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/card";
 import { QuestionLabelsForm } from "@/components/dashboard/question-labels-form";
 import { ChangePasswordForm } from "@/components/dashboard/change-password-form";
 import { RedmineConfigForm } from "@/components/dashboard/redmine-config-form";
+import { ReminderTimeForm } from "@/components/dashboard/reminder-time-form";
 import { AddDeveloperForm } from "@/components/dashboard/add-developer-form";
+import { EditDeveloperForm } from "@/components/dashboard/edit-developer-form";
 import { DeleteDeveloperButton } from "@/components/dashboard/delete-developer-button";
 
 export const runtime = "edge";
@@ -26,6 +28,8 @@ type DeveloperDto = {
   id: string;
   name: string;
   role: string | null;
+  email: string | null;
+  redmineUserId: string | null;
 };
 
 export default async function SettingsPage() {
@@ -90,6 +94,18 @@ export default async function SettingsPage() {
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-muted">
+          Lembrete diário
+        </h2>
+        <Card className="p-6">
+          <ReminderTimeForm
+            teamId={activeTeam?.id ?? ""}
+            initialReminderTimeUtc={activeTeam?.reminderTimeUtc ?? null}
+          />
+        </Card>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-muted">
           Perguntas do check-in
         </h2>
         <Card className="p-6">
@@ -110,19 +126,24 @@ export default async function SettingsPage() {
           ) : (
             <ul className="divide-y divide-border">
               {developers.map((developer) => (
-                <li key={developer.id} className="flex items-center justify-between py-2.5">
-                  <Link
-                    href={`/dashboard/developers/${developer.id}`}
-                    className="text-sm font-medium text-foreground hover:text-primary"
-                  >
-                    {developer.name}
-                    {developer.role && (
-                      <span className="ml-2 text-xs font-normal text-foreground-muted">
-                        {developer.role}
-                      </span>
-                    )}
-                  </Link>
-                  <DeleteDeveloperButton id={developer.id} name={developer.name} variant="text" />
+                <li key={developer.id} className="py-2.5">
+                  <div className="flex items-center justify-between">
+                    <Link
+                      href={`/dashboard/developers/${developer.id}`}
+                      className="text-sm font-medium text-foreground hover:text-primary"
+                    >
+                      {developer.name}
+                      {developer.role && (
+                        <span className="ml-2 text-xs font-normal text-foreground-muted">
+                          {developer.role}
+                        </span>
+                      )}
+                    </Link>
+                    <div className="flex items-center gap-1">
+                      <EditDeveloperForm developer={developer} />
+                      <DeleteDeveloperButton id={developer.id} name={developer.name} variant="text" />
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

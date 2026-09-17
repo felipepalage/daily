@@ -8,6 +8,7 @@ export type TeamData = {
   id: string;
   name: string;
   createdAt: string;
+  reminderTimeUtc: string | null;
 };
 
 export const getActiveTeam = cache(async () => {
